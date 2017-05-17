@@ -1,13 +1,14 @@
 import { Shape } from './shape';
 
 class RoundRect extends Shape {
-	constructor({ x, y, width, height, r, style, renderType, groupId, zIndex }) {
+	constructor({ x, y, width, height, r, style, renderType, groupId, zIndex, isDisplay }) {
 		super({
 			type: 'round-rect',
 			style: style,
 			renderType: renderType,
 			groupId: groupId,
-			zIndex: zIndex
+			zIndex: zIndex,
+			isDisplay: isDisplay
 		});
 
 		this.x = x;

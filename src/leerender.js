@@ -30,8 +30,6 @@ export class LeeRender {
 			let x = event.clientX - rect.left;
 			let y = event.clientY - rect.top;
 
-			let isDirty = false;
-
 			self.shapeLayer.forEach(function (layer) {
 				layer.forEach(function (shape) {
 					let isPreIn = shape.isPointIn(self.context, preMouseOverX, preMouseOverY);
@@ -43,15 +41,8 @@ export class LeeRender {
 						shape.onmouseover.forEach((callback) => callback(self.context, x, y));
 					if(!isCurIn && isPreIn)
 						shape.onmouseout.forEach((callback) => callback(self.context, x, y));
-
-					isDirty = shape.isDirty || isDirty;
-
 				});
 			});
-
-			if(isDirty) {
-				self.render();
-			}
 
 			preMouseOverX = x;
 			preMouseOverY = y;

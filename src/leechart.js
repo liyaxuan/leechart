@@ -4,7 +4,7 @@ import { PointChart } from './geometry/point';
 import { PieChart } from './geometry/pie';
 import { LinearAxis } from './axis/linear';
 import { Legend } from './legend/legend';
-
+import { ToolTip } from './tooltip/tooltip';
 import { Rect } from './shape/rect';
 import { LeeRender } from './leerender';
 import STYLE from './theme/macaron';
@@ -21,6 +21,18 @@ class LeeChart {
 		this.container = container;
 
 		this.container.style = `width: ${this.width}px; height: ${this.height}px; position: relative`;
+
+		this.container.onclick = (function (event) {
+			this.backCanvas.onclick(event);
+			this.bodyCanvas.onclick(event);
+			this.frontCanvas.onclick(event);		
+		}).bind(this);
+
+		this.container.onmousemove = (function (event) {
+			this.backCanvas.onmousemove(event);
+			this.bodyCanvas.onmousemove(event);
+			this.frontCanvas.onmousemove(event);	
+		}).bind(this);
 
 		['back', 'body', 'front'].forEach(function (prefix, index) {
 			let canvas = document.createElement('canvas');
@@ -86,7 +98,8 @@ class LeeChart {
 				x: this.padding.left,
 				y: this.padding.top,
 				width: this.bodyWidth,
-				height: this.bodyHeight
+				height: this.bodyHeight,
+				render: this.bodyRender
 			};
 
 			if(this._type === 'bar') {
@@ -111,7 +124,8 @@ class LeeChart {
 				x: this.padding.left,
 				y: this.padding.top,
 				width: this.bodyWidth,
-				height: this.bodyHeight
+				height: this.bodyHeight,
+				render: this.bodyRender
 			})
 		}
 			
@@ -197,14 +211,48 @@ class LeeChart {
 			// 	}
 			// }));
 
+
+
 			this.backRender.addShape(this._xAxis.getShape(backContext));
 			this.backRender.addShape(this._yAxis.getShape(backContext));
-
-			this.bodyRender.addShape(this._chart.getShape());
 		}
 		else if(/pie|doughnut|polar|radar/.test(this._type)) {
-			this.bodyRender.addShape(this._chart.getShape());
+			
 		}
+
+		let chartBody = {
+			x: this.padding.left,
+			y: this.padding.top,
+			width: this.bodyWidth,
+			height: this.bodyHeight
+		};
+
+		this._toolTip = new ToolTip({
+			data: { name: '李亚轩', age: 22, weight: 67, height: 183 },
+			x: chartBody.x,
+			y: chartBody.y,
+			chartBody: chartBody,
+			render: this.frontRender
+		});
+
+		this._chart.onmouseover = (function (context, x, y, index) {
+			this._toolTip.data = this._data[index];
+			this._toolTip.x = x;
+			this._toolTip.y = y;
+			this._toolTip.show();
+		}).bind(this);
+
+		this._chart.onmousemove = (function (context, x, y, index) {
+			this._toolTip.x = x;
+			this._toolTip.y = y;
+			this._toolTip.update();
+		}).bind(this);
+
+		this._chart.onmouseout = (function (context, x, y, index) {
+			this._toolTip.hide();	
+		}).bind(this);
+
+		this.bodyRender.addShape(this._chart.getShape());
 
 		return this;
 	}

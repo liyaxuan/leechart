@@ -63,17 +63,18 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 20);
+/******/ 	return __webpack_require__(__webpack_require__.s = 21);
 /******/ })
 /************************************************************************/
-/******/ ([
-/* 0 */
+/******/ ({
+
+/***/ 0:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Shape; });
 class Shape {
-	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false }) {
+	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false, isDisplay = true }) {
 		this.type = type;
 
 		this.style = style;
@@ -87,13 +88,29 @@ class Shape {
 		this.onmouseover = [];
 		this.onmouseout = [];
 		
-		this._render = null;
+		this.isDisplay = true;
 		this.isAnimation = isAnimation;
+
+		this._render = null;
 	}
 
 	setRender(render) {
 		this._render = render;
 		this.startAnimation();
+	}
+
+	show() {
+		if(!this.isDisplay) {
+			this.isDisplay = true;
+			this._render.requestRender();
+		}
+	}
+
+	hide() {
+		if(this.isDisplay) {
+			this.isDisplay = false;
+			this._render.requestRender();
+		}
 	}
 
 	startAnimation() {
@@ -138,6 +155,9 @@ class Shape {
 	}
 
 	render(context) {
+		if(!this.isDisplay)
+			return;
+
 		context.save();
 		for(let attr in this.style)
 			context[attr] = this.style[attr];
@@ -156,18 +176,19 @@ class Shape {
 
 
 /***/ }),
-/* 1 */
+
+/***/ 1:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return max; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return min; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return sum; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return sum; });
 /* unused harmony export range */
 /* unused harmony export nice */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return linearTick; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return getTextBoundingRect; });
-/* unused harmony export uuid */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return linearTick; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return getTextBoundingRect; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return uuid; });
 function max(array) {
 	return Math.max.apply({}, array);
 }
@@ -312,7 +333,8 @@ function uuid() {
 
 
 /***/ }),
-/* 2 */
+
+/***/ 2:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -445,7 +467,107 @@ function uuid() {
 });
 
 /***/ }),
-/* 3 */
+
+/***/ 21:
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_shape_text__ = __webpack_require__(3);
+
+
+
+
+let leeRender = new __WEBPACK_IMPORTED_MODULE_0__src_leerender__["a" /* LeeRender */](document.querySelector('#leerender'));
+let context = leeRender.getContext();
+
+context.textAlign = 'center';
+context.textBaseline = 'bottom';
+context.font = '40px sans-serif '
+
+let text = new __WEBPACK_IMPORTED_MODULE_2__src_shape_text__["a" /* Text */]({
+	x: 0,
+	y: 0,
+	value: 'heiheihei',
+	rotate: 10*Math.PI/180,
+	style: {
+		fillStyle: 'black'
+	}
+});
+
+let { x, y, width, height } = text.getBoundingRect(context);
+
+let rectH = new __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__["a" /* Rect */]({
+	x: 0,
+	y: y,
+	width: 500,
+	height: height,
+	style: {
+		fillStyle: 'rgba(255, 0, 0, 0.4)'
+	},
+	renderType: 'fill'
+});
+
+let rectV = new __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__["a" /* Rect */]({
+	x: x,
+	y: 0,
+	width: width,
+	height: 500,
+	style: {
+		fillStyle: 'rgba(0, 0, 255, 0.4)'
+	},
+	renderType: 'fill'
+});
+
+let info = new __WEBPACK_IMPORTED_MODULE_2__src_shape_text__["a" /* Text */]({
+	x: 400,
+	y: 400,
+	value: 'left top',
+	style: {
+		fillStyle: 'black'
+	}
+});
+
+leeRender.addShape(rectH);
+leeRender.addShape(rectV);
+leeRender.addShape(text);
+leeRender.addShape(info);
+
+let textAlign = ['left', 'center', 'right'];
+let textBaseline = ['top', 'middle', 'bottom'];
+
+let i = 0;
+let index = 0;
+
+setInterval(function () {
+
+	text.rotate = -1*i*Math.PI/180;
+	let { x, y, width, height } = text.getBoundingRect(context);
+	rectH.y = y;
+	rectH.height = height;
+	rectV.x = x;
+	rectV.width = width;
+
+	leeRender.render();
+
+	if(i === 359) {
+		index = (index + 1)%9;
+		context.textAlign = textAlign[index%3];
+		context.textBaseline = textBaseline[Math.floor(index/3)];
+
+		info.value = `${context.textAlign} ${context.textBaseline}`;
+	}
+
+	i = (i + 1)%360;
+}, 10);
+
+leeRender.render();
+
+/***/ }),
+
+/***/ 3:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -566,7 +688,8 @@ class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
 
 
 /***/ }),
-/* 4 */
+
+/***/ 4:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -603,8 +726,6 @@ class LeeRender {
 			let x = event.clientX - rect.left;
 			let y = event.clientY - rect.top;
 
-			let isDirty = false;
-
 			self.shapeLayer.forEach(function (layer) {
 				layer.forEach(function (shape) {
 					let isPreIn = shape.isPointIn(self.context, preMouseOverX, preMouseOverY);
@@ -616,15 +737,8 @@ class LeeRender {
 						shape.onmouseover.forEach((callback) => callback(self.context, x, y));
 					if(!isCurIn && isPreIn)
 						shape.onmouseout.forEach((callback) => callback(self.context, x, y));
-
-					isDirty = shape.isDirty || isDirty;
-
 				});
 			});
-
-			if(isDirty) {
-				self.render();
-			}
 
 			preMouseOverX = x;
 			preMouseOverY = y;
@@ -705,8 +819,8 @@ class LeeRender {
 
 
 /***/ }),
-/* 5 */,
-/* 6 */
+
+/***/ 6:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -754,116 +868,6 @@ class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 
 
-/***/ }),
-/* 7 */,
-/* 8 */,
-/* 9 */,
-/* 10 */,
-/* 11 */,
-/* 12 */,
-/* 13 */,
-/* 14 */,
-/* 15 */,
-/* 16 */,
-/* 17 */,
-/* 18 */,
-/* 19 */,
-/* 20 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_shape_text__ = __webpack_require__(3);
-
-
-
-
-let leeRender = new __WEBPACK_IMPORTED_MODULE_0__src_leerender__["a" /* LeeRender */](document.querySelector('#leerender'));
-let context = leeRender.getContext();
-
-context.textAlign = 'center';
-context.textBaseline = 'bottom';
-context.font = '40px sans-serif '
-
-let text = new __WEBPACK_IMPORTED_MODULE_2__src_shape_text__["a" /* Text */]({
-	x: 0,
-	y: 0,
-	value: 'heiheihei',
-	rotate: 10*Math.PI/180,
-	style: {
-		fillStyle: 'black'
-	}
-});
-
-let { x, y, width, height } = text.getBoundingRect(context);
-
-let rectH = new __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__["a" /* Rect */]({
-	x: 0,
-	y: y,
-	width: 500,
-	height: height,
-	style: {
-		fillStyle: 'rgba(255, 0, 0, 0.4)'
-	},
-	renderType: 'fill'
-});
-
-let rectV = new __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__["a" /* Rect */]({
-	x: x,
-	y: 0,
-	width: width,
-	height: 500,
-	style: {
-		fillStyle: 'rgba(0, 0, 255, 0.4)'
-	},
-	renderType: 'fill'
-});
-
-let info = new __WEBPACK_IMPORTED_MODULE_2__src_shape_text__["a" /* Text */]({
-	x: 400,
-	y: 400,
-	value: 'left top',
-	style: {
-		fillStyle: 'black'
-	}
-});
-
-leeRender.addShape(rectH);
-leeRender.addShape(rectV);
-leeRender.addShape(text);
-leeRender.addShape(info);
-
-let textAlign = ['left', 'center', 'right'];
-let textBaseline = ['top', 'middle', 'bottom'];
-
-let i = 0;
-let index = 0;
-
-setInterval(function () {
-
-	text.rotate = -1*i*Math.PI/180;
-	let { x, y, width, height } = text.getBoundingRect(context);
-	rectH.y = y;
-	rectH.height = height;
-	rectV.x = x;
-	rectV.width = width;
-
-	leeRender.render();
-
-	if(i === 359) {
-		index = (index + 1)%9;
-		context.textAlign = textAlign[index%3];
-		context.textBaseline = textBaseline[Math.floor(index/3)];
-
-		info.value = `${context.textAlign} ${context.textBaseline}`;
-	}
-
-	i = (i + 1)%360;
-}, 10);
-
-leeRender.render();
-
 /***/ })
-/******/ ]);
+
+/******/ });

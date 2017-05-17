@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 18);
+/******/ 	return __webpack_require__(__webpack_require__.s = 19);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -73,7 +73,7 @@
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Shape; });
 class Shape {
-	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false }) {
+	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false, isDisplay = true }) {
 		this.type = type;
 
 		this.style = style;
@@ -87,13 +87,29 @@ class Shape {
 		this.onmouseover = [];
 		this.onmouseout = [];
 		
-		this._render = null;
+		this.isDisplay = true;
 		this.isAnimation = isAnimation;
+
+		this._render = null;
 	}
 
 	setRender(render) {
 		this._render = render;
 		this.startAnimation();
+	}
+
+	show() {
+		if(!this.isDisplay) {
+			this.isDisplay = true;
+			this._render.requestRender();
+		}
+	}
+
+	hide() {
+		if(this.isDisplay) {
+			this.isDisplay = false;
+			this._render.requestRender();
+		}
 	}
 
 	startAnimation() {
@@ -138,6 +154,9 @@ class Shape {
 	}
 
 	render(context) {
+		if(!this.isDisplay)
+			return;
+
 		context.save();
 		for(let attr in this.style)
 			context[attr] = this.style[attr];
@@ -162,12 +181,12 @@ class Shape {
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return max; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return min; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return sum; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return sum; });
 /* unused harmony export range */
 /* unused harmony export nice */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return linearTick; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return getTextBoundingRect; });
-/* unused harmony export uuid */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return linearTick; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return getTextBoundingRect; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return uuid; });
 function max(array) {
 	return Math.max.apply({}, array);
 }
@@ -603,8 +622,6 @@ class LeeRender {
 			let x = event.clientX - rect.left;
 			let y = event.clientY - rect.top;
 
-			let isDirty = false;
-
 			self.shapeLayer.forEach(function (layer) {
 				layer.forEach(function (shape) {
 					let isPreIn = shape.isPointIn(self.context, preMouseOverX, preMouseOverY);
@@ -616,15 +633,8 @@ class LeeRender {
 						shape.onmouseover.forEach((callback) => callback(self.context, x, y));
 					if(!isCurIn && isPreIn)
 						shape.onmouseout.forEach((callback) => callback(self.context, x, y));
-
-					isDirty = shape.isDirty || isDirty;
-
 				});
 			});
-
-			if(isDirty) {
-				self.render();
-			}
 
 			preMouseOverX = x;
 			preMouseOverY = y;
@@ -706,6 +716,53 @@ class LeeRender {
 
 /***/ }),
 /* 5 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Circle; });
+
+
+
+class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ x, y, r, style, renderType, groupId, zIndex, isAnimation }) {
+		super({
+			type: 'circle',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex,
+			isAnimation: isAnimation
+		});
+
+		this.x = x;
+		this.y = y;
+		this.originalR = r;
+		this.r = r;
+	}
+
+	animate(currentTime, duration) {
+		let currentR = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalR, duration);
+		this.r = Math.min(currentR, this.originalR);
+	}
+
+	buildPath(context) {
+		context.beginPath();
+		context.arc(this.x, this.y, this.r, 0, 2*Math.PI);
+	}
+
+	isPointIn(context, x, y) {
+		this.buildPath(context);
+		return context.isPointInPath(x, y);
+	}
+}
+
+
+
+/***/ }),
+/* 6 */,
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -817,53 +874,6 @@ class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 
 /***/ }),
-/* 6 */,
-/* 7 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Circle; });
-
-
-
-class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
-	constructor({ x, y, r, style, renderType, groupId, zIndex, isAnimation }) {
-		super({
-			type: 'circle',
-			style: style,
-			renderType: renderType,
-			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
-		});
-
-		this.x = x;
-		this.y = y;
-		this.originalR = r;
-		this.r = r;
-	}
-
-	animate(currentTime, duration) {
-		let currentR = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalR, duration);
-		this.r = Math.min(currentR, this.originalR);
-	}
-
-	buildPath(context) {
-		context.beginPath();
-		context.arc(this.x, this.y, this.r, 0, 2*Math.PI);
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
-	}
-}
-
-
-
-/***/ }),
 /* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -903,7 +913,7 @@ class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(7);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(3);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return LinearAxis; });
 
@@ -949,7 +959,7 @@ class LinearAxis {
 		let tickArray = [];
 
 		if(this.dataType === 'linear') {
-			tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* linearTick */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["c" /* min */])(this.data), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(this.data));
+			tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* linearTick */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["c" /* min */])(this.data), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(this.data));
 		}
 		else if(this.dataType === 'category') {
 			tickArray = this.data.slice(0);
@@ -1003,7 +1013,7 @@ class LinearAxis {
 			/* 接下来处理宽度 */
 			let width = this.tickArray.reduce(function (pre, cur) {
 				/* 每个在 rotate 角度下旋转的文本 */
-				let { height } = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* getTextBoundingRect */])({
+				let { height } = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["f" /* getTextBoundingRect */])({
 					context: context,
 					text: cur.value,
 					rotate: rotate,
@@ -1148,7 +1158,7 @@ class LinearAxis {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_circle__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_circle__ = __webpack_require__(5);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_text__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__theme_macaron__ = __webpack_require__(8);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__util_util__ = __webpack_require__(1);
@@ -1307,7 +1317,8 @@ class Legend {
 /* 15 */,
 /* 16 */,
 /* 17 */,
-/* 18 */
+/* 18 */,
+/* 19 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";

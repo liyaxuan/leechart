@@ -2,24 +2,44 @@ import { Text } from '../shape/text';
 import { RoundRect } from '../shape/round-rect';
 import { max, uuid } from '../util/util';
 
-class Tooltip {
-	constructor({ data, x, y, chartBody, context }) {
+class ToolTip {
+	constructor({ data, x, y, chartBody, render }) {
 		this.data = data;
 		this.x = x;
 		this.y = y;
 		this.chartBody = chartBody;	
-		this.context = context;
+		this.render = render;
 
 		this.id = `tooltip-${uuid()}`;
 
 		this.textArray = [];
 		this.shapeArray = [];
 
+		this.isDisplay = false;
+
 		this.update();
 	}
 
 	color(color) {
 		this.color = color;
+	}
+
+	show() {
+		if(!this.isDisplay) {
+			this.isDisplay = true;
+			this.render.addShape(this.getShape());
+			
+			this.render.requestRender();
+		}
+	}
+
+	hide() {
+		if(this.isDisplay) {
+			this.isDisplay = false;
+			this.shapeArray.forEach(shape => this.render.removeShape(shape), this);
+			
+			this.render.requestRender();
+		}
 	}
 
 	update() {
@@ -30,15 +50,16 @@ class Tooltip {
 	computeText() {
 		let textArray = [];
 		for(let key in this.data) {
-			textArray.push(Math.max(`${key}: ${this.data[key]}`));
+			textArray.push(`${key}: ${this.data[key]}`);
 		}
 		return textArray;	
 	}
 
 	computeShape() {
-		let context = this.context;
 
-		let maxTextWidth = max(this.textArray.map(text => context.measureText(text)));
+		let context = this.render.getContext();
+
+		let maxTextWidth = max(this.textArray.map(text => context.measureText(text).width));
 		let padding = 6;
 		let r = 6;
 		let margin = 6;
@@ -48,7 +69,7 @@ class Tooltip {
 		let height = (this.textArray.length - 1)*(fontSize + margin) + fontSize + 2*padding;
 
 		let x = 0;
-		let y = Math.min(this.y - height, this.chartBody.y);
+		let y = Math.max(this.y - height, this.chartBody.y);
 		let xOffset = 6;
 		/* 放左边放不下 */
 		if(this.x - xOffset - width < this.chartBody.x)
@@ -66,20 +87,21 @@ class Tooltip {
 			style: {
 				fillStyle: 'rgba(50,50,50,0.5)'
 			},
-			groupId: this.id
+			groupId: this.id,
+			zIndex: 2
 		});
 
 		let textArray = this.textArray.map((text, index) => {
 			return new Text({
 				x: x + padding,
-				y: y + padding + index*(fontSize + margin) ,
+				y: y + padding + fontSize/2 + index*(fontSize + margin) ,
 				value: text,
 				style: {
 					fillStyle: '#ffffff',
 					textAlign: 'left',
-					textBaseline: 'top'
+					textBaseline: 'middle'
 				},
-				zIndex: 1,
+				zIndex: 3,
 				groupId: this.id
 			})
 		}, this);
@@ -92,3 +114,5 @@ class Tooltip {
 		return this.shapeArray;
 	}
 }
+
+export { ToolTip };

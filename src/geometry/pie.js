@@ -1,25 +1,23 @@
 import { linearTick, max, min, sum } from '../util/util';
 import { Line } from '../shape/line';
 import { Sector } from '../shape/sector';
+import { Base } from './base'
 
-class PieChart {
-	constructor({ data, x, y, width, height, type = 'polar' }) {
-		this.data = data;
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
+class PieChart extends Base {
+	constructor({ data, x, y, width, height, render, type = 'polar' }) {
+		super({
+			data: data,
+			x: x,
+			y: y,
+			width: width,
+			height: height,
+			render: render
+		});
 
 		this.type = type;
 	}
 
-	color(color) {
-		this.color = color;
-	}
-
-	getShape() {
-		
-		
+	computeShape() {
 		let cx = this.x + this.width/2;
 		let cy = this.y + this.height/2;
 		let sumData = sum(this.data);
@@ -34,11 +32,9 @@ class PieChart {
 			let r = radius;
 
 			if(this.type === 'polar') {
-
 				radian = 2*Math.PI/array.length;
 				r = radius*(item/maxData);
 			}
-
 
 			return new Sector({
 				x: cx,

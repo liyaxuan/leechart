@@ -1,20 +1,20 @@
 import { linearTick, max, min } from '../util/util';
 import { Circle } from '../shape/circle';
+import { Base } from './base'
 
-class PointChart {
-	constructor({ data, x, y, width, height }) {
-		this.data = data;
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
+class PointChart extends Base {
+	constructor({ data, x, y, width, height, render }) {
+		super({
+			data: data,
+			x: x,
+			y: y,
+			width: width,
+			height: height,
+			render: render
+		});
 	}
-
-	color(color) {
-		this.color = color;
-	}
-
-	getShape() {
+	
+	computeShape() {
 		let color = this.color;
 		let shapeArray = [];
 

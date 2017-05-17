@@ -1,5 +1,5 @@
 class Shape {
-	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false }) {
+	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false, isDisplay = true }) {
 		this.type = type;
 
 		this.style = style;
@@ -13,13 +13,29 @@ class Shape {
 		this.onmouseover = [];
 		this.onmouseout = [];
 		
-		this._render = null;
+		this.isDisplay = true;
 		this.isAnimation = isAnimation;
+
+		this._render = null;
 	}
 
 	setRender(render) {
 		this._render = render;
 		this.startAnimation();
+	}
+
+	show() {
+		if(!this.isDisplay) {
+			this.isDisplay = true;
+			this._render.requestRender();
+		}
+	}
+
+	hide() {
+		if(this.isDisplay) {
+			this.isDisplay = false;
+			this._render.requestRender();
+		}
 	}
 
 	startAnimation() {
@@ -64,6 +80,9 @@ class Shape {
 	}
 
 	render(context) {
+		if(!this.isDisplay)
+			return;
+
 		context.save();
 		for(let attr in this.style)
 			context[attr] = this.style[attr];

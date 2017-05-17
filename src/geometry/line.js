@@ -2,23 +2,24 @@ import { linearTick, max, min } from '../util/util';
 import { Circle } from '../shape/circle';
 import { Line } from '../shape/line';
 import { BezierCurve } from '../shape/bezier-curve';
+import { Base } from './base'
 
-class LineChart {
-	constructor({ data, x, y, width, height, isBezierCurve = true, isArea = true }) {
-		this.data = data;
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
+class LineChart extends Base {
+	constructor({ data, x, y, width, height, render, isBezierCurve = true, isArea = true }) {
+		super({
+			data: data,
+			x: x,
+			y: y,
+			width: width,
+			height: height,
+			render: render
+		});
 
 		this.isBezierCurve = isBezierCurve;
+		this.isArea = isArea;
 	}
 
-	color(color) {
-		this.color = color;
-	}
-
-	getShape(data) {
+	computeShape(data) {
 		let color = this.color;
 		let intervalWidth = this.width/(this.data.length - 1);
 		let tickArray = linearTick(min(this.data), max(this.data));
