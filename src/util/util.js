@@ -139,4 +139,39 @@ function uuid() {
 	return uid++;
 }
 
-export { max, min, sum, range, nice, linearTick, getTextBoundingRect, uuid };
+function unique(array) {
+	let result = [];
+	let set = new Set(array);
+	for(let item of set.keys())
+		result.push(item);
+	return result;
+}
+
+function getCol(data, col) {
+	if(data[0] && data[0][col])
+		return data.map(item => item[col]);
+	else
+		return [];
+}
+
+function getDimData(data, dim1, resultDim, dim2) {
+	let dim1Array = unique(getCol(data, dim1));
+	let dim2Array = dim2 ? unique(getCol(data, dim2)) : [];
+
+	let result = [];
+
+	data.forEach(item => {
+		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);
+		result[i] = result[i] || [];
+		if(dim2) {
+			let j = dim2Array.findIndex(dim2Item => dim2Item === item[dim2]);
+			result[i][j] = item[resultDim];
+		}
+		else
+			result[i].push(item[resultDim]);
+	}, this);
+
+	return result;	
+}
+
+export { max, min, sum, range, nice, linearTick, getTextBoundingRect, unique, uuid, getCol, getDimData };

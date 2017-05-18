@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 25);
+/******/ 	return __webpack_require__(__webpack_require__.s = 24);
 /******/ })
 /************************************************************************/
 /******/ ({
@@ -171,201 +171,6 @@ class Shape {
 			context[this.renderType]();
 		context.restore();
 	}
-}
-
-
-
-/***/ }),
-
-/***/ 1:
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return max; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return min; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return sum; });
-/* unused harmony export range */
-/* unused harmony export nice */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return linearTick; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "i", function() { return getTextBoundingRect; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return unique; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return uuid; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return getCol; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return getDimData; });
-function max(array) {
-	return Math.max.apply({}, array);
-}
-
-function min(array) {
-	return Math.min.apply({}, array);
-}
-
-function sum(array) {
-	return array.reduce((pre, cur) => pre + cur, 0);
-}
-
-function range(array) {
-	return max(array) - min(array);
-}
-
-function almostEquals(x, y, epsilon) {
-	return Math.abs(x - y) < epsilon;
-}
-
-function nice(range, round) {
-	var exponent = Math.floor(Math.log10(range));
-	var fraction = range / Math.pow(10, exponent);
-	var niceFraction;
-
-	if (round) {
-		if (fraction < 1.5) {
-			niceFraction = 1;
-		} else if (fraction < 3) {
-			niceFraction = 2;
-		} else if (fraction < 7) {
-			niceFraction = 5;
-		} else {
-			niceFraction = 10;
-		}
-	} else if (fraction <= 1.0) {
-		niceFraction = 1;
-	} else if (fraction <= 2) {
-		niceFraction = 2;
-	} else if (fraction <= 5) {
-		niceFraction = 5;
-	} else {
-		niceFraction = 10;
-	}
-
-	return niceFraction * Math.pow(10, exponent);
-}
-
-function linearTick(min, max) {
-	var ticks = [];
-	// To get a "nice" value for the tick spacing, we will use the appropriately named
-	// "nice number" algorithm. See http://stackoverflow.com/questions/8506881/nice-label-algorithm-for-charts-with-minimum-ticks
-	// for details.
-	var niceRange = nice(max - min, false);
-	var spacing = nice(niceRange / (11 - 1), true);
-
-	var niceMin = Math.floor(min / spacing) * spacing;
-	var niceMax = Math.ceil(max / spacing) * spacing;
-
-	var numSpaces = (niceMax - niceMin) / spacing;
-	if (almostEquals(numSpaces, Math.round(numSpaces), spacing / 1000)) {
-		numSpaces = Math.round(numSpaces);
-	} else {
-		numSpaces = Math.ceil(numSpaces);
-	}
-	// Put the values into the ticks array
-	ticks.push(niceMin);
-	for (var j = 1; j < numSpaces; ++j) {
-		ticks.push(niceMin + (j * spacing));
-	}
-	ticks.push(niceMax);
-
-	return ticks;
-}
-
-function getTextBoundingRect({ context, x = 0, y = 0, text, rotate, fontSize, textAlign, textBaseline }) {
-		let rectX = 0;
-		let rectY = 0;
-		let rectWidth = context.measureText(text).width;
-		let rectHeight = fontSize;
-
-		switch (textAlign) {
-			case 'left':
-				rectX = x;
-				break;
-			case 'center':
-				rectX = x - rectWidth/2;
-				break;
-			case 'right':
-				rectX = x - rectWidth;
-				break;
-		}
-		switch (textBaseline) {
-			case 'top':
-				rectY = y;
-				break;
-			case 'middle':
-				rectY = y - rectHeight/2;
-				break;
-			case 'bottom':
-				rectY = y - rectHeight;
-				break;
-		}
-
-		let pointArray = [{ x: rectX, y: rectY },
-		{ x: rectX + rectWidth, y: rectY },
-		{ x: rectX, y: rectY + rectHeight },
-		{ x: rectX + rectWidth, y: rectY + rectHeight }];
-
-		let rotatedPointArray = pointArray.map(function (point) {
-
-			let _x = x + Math.cos(rotate)*(point.x - x) - Math.sin(rotate)*(point.y - y);
-			let _y = x + Math.sin(rotate)*(point.x - x) + Math.cos(rotate)*(point.y - y);
-
-			return {
-				x: _x,
-				y: _y
-			};
-		}, this);
-
-		let xArray = rotatedPointArray.map((point) => point.x);
-		let yArray = rotatedPointArray.map((point) => point.y);
-
-		rectX = min(xArray);
-		rectY = min(yArray);
-		rectWidth = max(xArray) - rectX;
-		rectHeight = max(yArray) - rectY;
-
-		return {
-			x: rectX,
-			y: rectY,
-			width: rectWidth,
-			height: rectHeight
-		}
-}
-
-let uid = 0;
-function uuid() {
-	return uid++;
-}
-
-function unique(array) {
-	let result = [];
-	let set = new Set(array);
-	for(let item of set.keys())
-		result.push(item);
-	return result;
-}
-
-function getCol(data, col) {
-	if(data[0] && data[0][col])
-		return data.map(item => item[col]);
-	else
-		return [];
-}
-
-function getDimData(data, dim1, resultDim, dim2) {
-	let dim1Array = unique(getCol(data, dim1));
-	let dim2Array = dim2 ? unique(getCol(data, dim2)) : [];
-
-	let result = [];
-
-	data.forEach(item => {
-		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);
-		result[i] = result[i] || [];
-		if(dim2) {
-			let j = dim2Array.findIndex(dim2Item => dim2Item === item[dim2]);
-			result[i][j] = item[resultDim];
-		}
-		else
-			result[i].push(item[resultDim]);
-	}, this);
-
-	return result;	
 }
 
 
@@ -506,101 +311,27 @@ function getDimData(data, dim1, resultDim, dim2) {
 
 /***/ }),
 
-/***/ 25:
+/***/ 24:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_shape_text__ = __webpack_require__(4);
-
 
 
 
 let leeRender = new __WEBPACK_IMPORTED_MODULE_0__src_leerender__["a" /* LeeRender */](document.querySelector('#leerender'));
-let context = leeRender.getContext();
-
-context.textAlign = 'center';
-context.textBaseline = 'bottom';
-context.font = '40px sans-serif '
-
-let text = new __WEBPACK_IMPORTED_MODULE_2__src_shape_text__["a" /* Text */]({
-	x: 0,
-	y: 0,
-	value: 'heiheihei',
-	rotate: 10*Math.PI/180,
-	style: {
-		fillStyle: 'black'
-	}
-});
-
-let { x, y, width, height } = text.getBoundingRect(context);
-
-let rectH = new __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__["a" /* Rect */]({
-	x: 0,
-	y: y,
-	width: 500,
-	height: height,
-	style: {
-		fillStyle: 'rgba(255, 0, 0, 0.4)'
-	},
-	renderType: 'fill'
-});
-
-let rectV = new __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__["a" /* Rect */]({
-	x: x,
-	y: 0,
-	width: width,
-	height: 500,
-	style: {
-		fillStyle: 'rgba(0, 0, 255, 0.4)'
-	},
-	renderType: 'fill'
-});
-
-let info = new __WEBPACK_IMPORTED_MODULE_2__src_shape_text__["a" /* Text */]({
-	x: 400,
-	y: 400,
-	value: 'left top',
-	style: {
-		fillStyle: 'black'
-	}
-});
-
-leeRender.addShape(rectH);
-leeRender.addShape(rectV);
-leeRender.addShape(text);
-leeRender.addShape(info);
-
-let textAlign = ['left', 'center', 'right'];
-let textBaseline = ['top', 'middle', 'bottom'];
-
-let i = 0;
-let index = 0;
-
-setInterval(function () {
-
-	text.rotate = -1*i*Math.PI/180;
-	let { x, y, width, height } = text.getBoundingRect(context);
-	rectH.y = y;
-	rectH.height = height;
-	rectV.x = x;
-	rectV.width = width;
-
-	leeRender.render();
-
-	if(i === 359) {
-		index = (index + 1)%9;
-		context.textAlign = textAlign[index%3];
-		context.textBaseline = textBaseline[Math.floor(index/3)];
-
-		info.value = `${context.textAlign} ${context.textBaseline}`;
-	}
-
-	i = (i + 1)%360;
-}, 10);
-
+let rect = new __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__["a" /* Rect */]({
+	x: 10,
+	y: 10,
+	width: 200,
+	height: 200
+})
+rect.addEventListener('mousemove', function (context, x, y) {
+	console.log(x, y);
+})
+leeRender.addShape(rect);
 leeRender.render();
 
 /***/ }),
@@ -732,128 +463,6 @@ class LeeRender {
 	}
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = LeeRender;
-
-
-/***/ }),
-
-/***/ 4:
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape__ = __webpack_require__(0);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Text; });
-
-
-
-class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
-	constructor({ x, y, value, rotate = 0, style, renderType = 'fill', groupId, zIndex }) {
-		super({
-			type: 'text',
-			style: style,
-			renderType: renderType,
-			groupId: groupId,
-			zIndex: zIndex
-		});
-
-		this.x = x;
-		this.y = y;
-		this.value = value.toString();
-
-		this.rotate = rotate;
-	}
-
-	isPointIn(context, x, y) {
-		let { x: _x, y: _y, width: _w, height: _h } = this.getBoundingRect(context);
-
-		return (x > _x) && (x < _x + _w) && (y > _y) && (y < _y + _h);
-	}
-
-	getBoundingRect(context) {
-		let rectX = 0;
-		let rectY = 0;
-		let rectWidth = context.measureText(this.value).width;
-		let rectHeight = parseInt(/\d+/.exec(context.font)[0]);
-
-		switch (context.textAlign) {
-			case 'left':
-				rectX = this.x;
-				break;
-			case 'center':
-				rectX = this.x - rectWidth/2;
-				break;
-			case 'right':
-				rectX = this.x - rectWidth;
-				break;
-		}
-		switch (context.textBaseline) {
-			case 'top':
-				rectY = this.y;
-				break;
-			case 'middle':
-				rectY = this.y - rectHeight/2;
-				break;
-			case 'bottom':
-				rectY = this.y - rectHeight;
-				break;
-		}
-
-		let pointArray = [{ x: rectX, y: rectY },
-		{ x: rectX + rectWidth, y: rectY },
-		{ x: rectX, y: rectY + rectHeight },
-		{ x: rectX + rectWidth, y: rectY + rectHeight }];
-
-		let rotatedPointArray = pointArray.map(function (point) {
-			let x = point.x;
-			let y = point.y;
-
-			let m = this.x;
-			let n = this.y;
-
-			let a = this.rotate;
-
-			let _x = m + Math.cos(a)*(x - m) - Math.sin(a)*(y - n);
-			let _y = n + Math.sin(a)*(x - m) + Math.cos(a)*(y - n);
-
-			return {
-				x: _x,
-				y: _y
-			};
-		}, this);
-
-		let xArray = rotatedPointArray.map((point) => point.x);
-		let yArray = rotatedPointArray.map((point) => point.y);
-
-		rectX = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(xArray);
-		rectY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(yArray);
-		rectWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(xArray) - rectX;
-		rectHeight = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(yArray) - rectY;
-
-		return {
-			x: rectX,
-			y: rectY,
-			width: rectWidth,
-			height: rectHeight
-		}
-	}
-
-	render(context) {
-		for(let attr in this.style)
-			context[attr] = this.style[attr];
-
-		if(this.rotate !== 0) {
-			context.save();
-			context.translate(this.x, this.y);
-			context.rotate(this.rotate);
-			context.fillText(this.value, 0, 0);
-			context.restore();			
-		}
-		else {
-			context.fillText(this.value, this.x, this.y);
-		}
-	}
-}
-
 
 
 /***/ }),

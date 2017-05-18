@@ -42,6 +42,12 @@ class ToolTip {
 		}
 	}
 
+	move() {
+		this.shapeArray.forEach(shape => this.render.removeShape(shape), this);
+		this.render.addShape(this.getShape());
+		this.render.requestRender();
+	}
+
 	update() {
 		this.textArray = this.computeText();
 		this.shapeArray = this.computeShape();
@@ -56,7 +62,6 @@ class ToolTip {
 	}
 
 	computeShape() {
-
 		let context = this.render.getContext();
 
 		let maxTextWidth = max(this.textArray.map(text => context.measureText(text).width));

@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 19);
+/******/ 	return __webpack_require__(__webpack_require__.s = 21);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -179,14 +179,17 @@ class Shape {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return max; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return min; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return sum; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return max; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return min; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return sum; });
 /* unused harmony export range */
 /* unused harmony export nice */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return linearTick; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return getTextBoundingRect; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return uuid; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return linearTick; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "i", function() { return getTextBoundingRect; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return unique; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return uuid; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return getCol; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return getDimData; });
 function max(array) {
 	return Math.max.apply({}, array);
 }
@@ -326,6 +329,41 @@ function getTextBoundingRect({ context, x = 0, y = 0, text, rotate, fontSize, te
 let uid = 0;
 function uuid() {
 	return uid++;
+}
+
+function unique(array) {
+	let result = [];
+	let set = new Set(array);
+	for(let item of set.keys())
+		result.push(item);
+	return result;
+}
+
+function getCol(data, col) {
+	if(data[0] && data[0][col])
+		return data.map(item => item[col]);
+	else
+		return [];
+}
+
+function getDimData(data, dim1, resultDim, dim2) {
+	let dim1Array = unique(getCol(data, dim1));
+	let dim2Array = dim2 ? unique(getCol(data, dim2)) : [];
+
+	let result = [];
+
+	data.forEach(item => {
+		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);
+		result[i] = result[i] || [];
+		if(dim2) {
+			let j = dim2Array.findIndex(dim2Item => dim2Item === item[dim2]);
+			result[i][j] = item[resultDim];
+		}
+		else
+			result[i].push(item[resultDim]);
+	}, this);
+
+	return result;	
 }
 
 
@@ -468,127 +506,6 @@ function uuid() {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape__ = __webpack_require__(0);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Text; });
-
-
-
-class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
-	constructor({ x, y, value, rotate = 0, style, renderType = 'fill', groupId, zIndex }) {
-		super({
-			type: 'text',
-			style: style,
-			renderType: renderType,
-			groupId: groupId,
-			zIndex: zIndex
-		});
-
-		this.x = x;
-		this.y = y;
-		this.value = value.toString();
-
-		this.rotate = rotate;
-	}
-
-	isPointIn(context, x, y) {
-		let { x: _x, y: _y, width: _w, height: _h } = this.getBoundingRect(context);
-
-		return (x > _x) && (x < _x + _w) && (y > _y) && (y < _y + _h);
-	}
-
-	getBoundingRect(context) {
-		let rectX = 0;
-		let rectY = 0;
-		let rectWidth = context.measureText(this.value).width;
-		let rectHeight = parseInt(/\d+/.exec(context.font)[0]);
-
-		switch (context.textAlign) {
-			case 'left':
-				rectX = this.x;
-				break;
-			case 'center':
-				rectX = this.x - rectWidth/2;
-				break;
-			case 'right':
-				rectX = this.x - rectWidth;
-				break;
-		}
-		switch (context.textBaseline) {
-			case 'top':
-				rectY = this.y;
-				break;
-			case 'middle':
-				rectY = this.y - rectHeight/2;
-				break;
-			case 'bottom':
-				rectY = this.y - rectHeight;
-				break;
-		}
-
-		let pointArray = [{ x: rectX, y: rectY },
-		{ x: rectX + rectWidth, y: rectY },
-		{ x: rectX, y: rectY + rectHeight },
-		{ x: rectX + rectWidth, y: rectY + rectHeight }];
-
-		let rotatedPointArray = pointArray.map(function (point) {
-			let x = point.x;
-			let y = point.y;
-
-			let m = this.x;
-			let n = this.y;
-
-			let a = this.rotate;
-
-			let _x = m + Math.cos(a)*(x - m) - Math.sin(a)*(y - n);
-			let _y = n + Math.sin(a)*(x - m) + Math.cos(a)*(y - n);
-
-			return {
-				x: _x,
-				y: _y
-			};
-		}, this);
-
-		let xArray = rotatedPointArray.map((point) => point.x);
-		let yArray = rotatedPointArray.map((point) => point.y);
-
-		rectX = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["c" /* min */])(xArray);
-		rectY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["c" /* min */])(yArray);
-		rectWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(xArray) - rectX;
-		rectHeight = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(yArray) - rectY;
-
-		return {
-			x: rectX,
-			y: rectY,
-			width: rectWidth,
-			height: rectHeight
-		}
-	}
-
-	render(context) {
-		for(let attr in this.style)
-			context[attr] = this.style[attr];
-
-		if(this.rotate !== 0) {
-			context.save();
-			context.translate(this.x, this.y);
-			context.rotate(this.rotate);
-			context.fillText(this.value, 0, 0);
-			context.restore();			
-		}
-		else {
-			context.fillText(this.value, this.x, this.y);
-		}
-	}
-}
-
-
-
-/***/ }),
-/* 4 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_shape__ = __webpack_require__(0);
 
 
@@ -627,7 +544,7 @@ class LeeRender {
 					let isPreIn = shape.isPointIn(self.context, preMouseOverX, preMouseOverY);
 					let isCurIn = shape.isPointIn(self.context, x, y);
 
-					if(isCurIn)
+					if(isPreIn && isCurIn)
 						shape.onmousemove.forEach((callback) => callback(self.context, x, y));
 					if(isCurIn && !isPreIn)
 						shape.onmouseover.forEach((callback) => callback(self.context, x, y));
@@ -715,7 +632,129 @@ class LeeRender {
 
 
 /***/ }),
-/* 5 */
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape__ = __webpack_require__(0);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Text; });
+
+
+
+class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
+	constructor({ x, y, value, rotate = 0, style, renderType = 'fill', groupId, zIndex }) {
+		super({
+			type: 'text',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex
+		});
+
+		this.x = x;
+		this.y = y;
+		this.value = value.toString();
+
+		this.rotate = rotate;
+	}
+
+	isPointIn(context, x, y) {
+		let { x: _x, y: _y, width: _w, height: _h } = this.getBoundingRect(context);
+
+		return (x > _x) && (x < _x + _w) && (y > _y) && (y < _y + _h);
+	}
+
+	getBoundingRect(context) {
+		let rectX = 0;
+		let rectY = 0;
+		let rectWidth = context.measureText(this.value).width;
+		let rectHeight = parseInt(/\d+/.exec(context.font)[0]);
+
+		switch (context.textAlign) {
+			case 'left':
+				rectX = this.x;
+				break;
+			case 'center':
+				rectX = this.x - rectWidth/2;
+				break;
+			case 'right':
+				rectX = this.x - rectWidth;
+				break;
+		}
+		switch (context.textBaseline) {
+			case 'top':
+				rectY = this.y;
+				break;
+			case 'middle':
+				rectY = this.y - rectHeight/2;
+				break;
+			case 'bottom':
+				rectY = this.y - rectHeight;
+				break;
+		}
+
+		let pointArray = [{ x: rectX, y: rectY },
+		{ x: rectX + rectWidth, y: rectY },
+		{ x: rectX, y: rectY + rectHeight },
+		{ x: rectX + rectWidth, y: rectY + rectHeight }];
+
+		let rotatedPointArray = pointArray.map(function (point) {
+			let x = point.x;
+			let y = point.y;
+
+			let m = this.x;
+			let n = this.y;
+
+			let a = this.rotate;
+
+			let _x = m + Math.cos(a)*(x - m) - Math.sin(a)*(y - n);
+			let _y = n + Math.sin(a)*(x - m) + Math.cos(a)*(y - n);
+
+			return {
+				x: _x,
+				y: _y
+			};
+		}, this);
+
+		let xArray = rotatedPointArray.map((point) => point.x);
+		let yArray = rotatedPointArray.map((point) => point.y);
+
+		rectX = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(xArray);
+		rectY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(yArray);
+		rectWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(xArray) - rectX;
+		rectHeight = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(yArray) - rectY;
+
+		return {
+			x: rectX,
+			y: rectY,
+			width: rectWidth,
+			height: rectHeight
+		}
+	}
+
+	render(context) {
+		for(let attr in this.style)
+			context[attr] = this.style[attr];
+
+		if(this.rotate !== 0) {
+			context.save();
+			context.translate(this.x, this.y);
+			context.rotate(this.rotate);
+			context.fillText(this.value, 0, 0);
+			context.restore();			
+		}
+		else {
+			context.fillText(this.value, this.x, this.y);
+		}
+	}
+}
+
+
+
+/***/ }),
+/* 5 */,
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -761,8 +800,201 @@ class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 
 /***/ }),
-/* 6 */,
 /* 7 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_circle__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_text__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__theme_macaron__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__util_util__ = __webpack_require__(1);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Legend; });
+
+
+
+
+
+class Legend {
+	constructor({ data, x, y, width, height, position = 'top', render }) {
+		this.data = data;
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+
+		this.position = position;
+
+		this.render = render;
+
+		this.update();
+	}
+
+	color(color) {
+		this.color = color;
+	}
+
+	update() {
+		this.fit();
+		this.shapeArray = this.computeShape();
+	}
+
+	fit() {
+		let context = this.render.getContext();
+		
+		let r = 6;	
+		let margin = 6;
+		let fontSize = 12;
+		let lengthArray = this.data.map((category, index, array) => 2*r + margin + context.measureText(category).width);
+
+		if(this.postion === 'top' || this.position === 'bottom') {
+			let lineIndex = 0;
+			let x = 0;
+			lengthArray.forEach((length) => {
+				if((x + length) > this.width) {
+					/* 放不下, 另起一行 */
+					x = 0;
+					lineIndex++;	
+				}
+			}, this);
+
+			let totalHeight = lineIndex*(margin + fontSize) + fontSize;
+			this.height = Math.max(this.height, totalHeight);
+		}
+		/* 左右方向排列的图例 */
+		else if (this.position === 'left' || this.position === 'right') {
+			let maxLegendWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__util_util__["a" /* max */])(lengthArray);
+			this.width = Math.max(this.width, maxLegendWidth);
+		}		
+	}
+
+	getWidth() {
+		return this.width;
+	}
+
+	getHeight() {
+		return this.height;
+	}
+
+	computeShape() {
+		let context = this.render.getContext();
+
+		let r = 6;	
+		let margin = 6;
+		let fontSize = 12;
+		let lengthArray = this.data.map((item, index, array) => 2*r + margin + context.measureText(item).width);	
+
+		let shapeArray = [];
+
+		if(this.position === 'top' || this.position === 'bottom') {
+			let lineIndex = 0;
+			let x = 0;
+
+			lengthArray.forEach(function (length, index) {
+				if((x + length) > this.width) {
+					/* 放不下, 另起一行 */
+					x = 0;
+					lineIndex++;	
+				}
+
+				let y = this.y + fontSize/2 + lineIndex*(fontSize + margin);
+
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_0__shape_circle__["a" /* Circle */]({
+					x: this.x + x + r,
+					y: y,
+					r: r,
+					style: {
+						fillStyle: this.color[index]
+					},
+					renderType: 'fill'
+				}));
+
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_text__["a" /* Text */]({
+					x: this.x + x + 2*r + margin,
+					y: y,
+					value: this.data[index],
+					style: {
+						textBaseline: 'middle',
+						textAlign: 'left'
+					}	
+				}));
+
+				x += (length + margin);
+			}, this);			
+		}
+
+		else if(this.position === 'left' || this.position === 'right') {
+			lengthArray.forEach(function (length, index) {
+				let y = this.y + fontSize/2 + index*(fontSize + margin);
+
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_0__shape_circle__["a" /* Circle */]({
+					x: this.x + r,
+					y: y,
+					r: r,
+					style: {
+						fillStyle: this.color[index]
+					},
+					renderType: 'fill'
+				}));
+
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_text__["a" /* Text */]({
+					x: this.x + 2*r + margin,
+					y: y,
+					value: this.data[index],
+					style: {
+						textBaseline: 'middle',
+						textAlign: 'left'
+					}	
+				}));
+			}, this);
+		}
+
+		return shapeArray;
+	}
+
+	getShape() {
+		this.update();
+		return this.shapeArray;
+	}
+}
+
+
+
+/***/ }),
+/* 8 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony default export */ __webpack_exports__["a"] = ({
+	color: [
+	    '#2ec7c9','#b6a2de','#5ab1ef','#ffb980','#d87a80',
+	    '#8d98b3','#e5cf0d','#97b552','#95706d','#dc69aa',
+	    '#07a2a4','#9a7fd1','#588dd5','#f5994e','#c05050',
+	    '#59678c','#c9ab00','#7eb00a','#6f5553','#c14089'
+	],
+	axis: {
+		tick: {
+			length: 8,
+			margin: 4,
+			color: '008acd'
+		},
+		label: {
+			color: '#008acd'
+		},
+		grid: {
+			color: '#eeeeee'
+		}
+	},
+	legend: {
+		shape: 'rect',
+		width: 12,
+		/* shape: 'circle'
+		r: 6 */
+		margin: 4
+	}
+});
+
+/***/ }),
+/* 9 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -794,7 +1026,7 @@ class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 	animate(currentTime, duration) {
 		let yArray = this.originalPointArray.map(({ x, y }) => y);
-		let maxY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["b" /* max */])(yArray);
+		let maxY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["a" /* max */])(yArray);
 
 		this.pointArray = this.originalPointArray.map(({ x, y }) => {
 			let dY = Math.abs(maxY - y);
@@ -874,47 +1106,14 @@ class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 
 /***/ }),
-/* 8 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony default export */ __webpack_exports__["a"] = ({
-	color: [
-	    '#2ec7c9','#b6a2de','#5ab1ef','#ffb980','#d87a80',
-	    '#8d98b3','#e5cf0d','#97b552','#95706d','#dc69aa',
-	    '#07a2a4','#9a7fd1','#588dd5','#f5994e','#c05050',
-	    '#59678c','#c9ab00','#7eb00a','#6f5553','#c14089'
-	],
-	axis: {
-		tick: {
-			length: 8,
-			margin: 4,
-			color: '008acd'
-		},
-		label: {
-			color: '#008acd'
-		},
-		grid: {
-			color: '#eeeeee'
-		}
-	},
-	legend: {
-		shape: 'rect',
-		width: 12,
-		/* shape: 'circle'
-		r: 6 */
-		margin: 4
-	}
-});
-
-/***/ }),
-/* 9 */
+/* 10 */,
+/* 11 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(4);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return LinearAxis; });
 
 
@@ -959,7 +1158,7 @@ class LinearAxis {
 		let tickArray = [];
 
 		if(this.dataType === 'linear') {
-			tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* linearTick */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["c" /* min */])(this.data), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(this.data));
+			tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* linearTick */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(this.data), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(this.data));
 		}
 		else if(this.dataType === 'category') {
 			tickArray = this.data.slice(0);
@@ -985,7 +1184,7 @@ class LinearAxis {
 		let context = this.context;
 
 		let limitedLabelWidth = 0;
-		let maxLabelWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(this.tickArray.map(tick => context.measureText(tick.value).width ));
+		let maxLabelWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(this.tickArray.map(tick => context.measureText(tick.value).width ));
 
 		
 		/* 水平坐标轴的限制在于长度 */
@@ -1013,7 +1212,7 @@ class LinearAxis {
 			/* 接下来处理宽度 */
 			let width = this.tickArray.reduce(function (pre, cur) {
 				/* 每个在 rotate 角度下旋转的文本 */
-				let { height } = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["f" /* getTextBoundingRect */])({
+				let { height } = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["i" /* getTextBoundingRect */])({
 					context: context,
 					text: cur.value,
 					rotate: rotate,
@@ -1154,163 +1353,6 @@ class LinearAxis {
 
 
 /***/ }),
-/* 10 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_circle__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_text__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__theme_macaron__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__util_util__ = __webpack_require__(1);
-/* unused harmony export Legend */
-
-
-
-
-
-class Legend {
-	constructor({ data, x, y, width, length, position = 'top', context }) {
-		this.data = data;
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.length = length;
-
-		this.position = position;
-
-		this.context = context;
-
-		this.update();
-	}
-
-	color(color) {
-		this.color = color;
-	}
-
-	update() {
-		this.fit();
-		this.shapeArray = this.computeShape();
-	}
-
-	fit() {
-		let context = this.context;
-		
-		let r = 6;	
-		let margin = 6;
-		let fontSize = 12;
-		let lengthArray = this.data.map((category, index, array) => 2*r + margin + context.measureText(category).width);
-
-		if(this.postion === 'top' || this.position === 'bottom') {
-			let lineIndex = 0;
-			let x = 0;
-			lengthArray.forEach((length) => {
-				if((x + length) > this.length) {
-					/* 放不下, 另起一行 */
-					x = 0;
-					lineIndex++;	
-				}
-			}, this);
-
-			let totalHeight = lineIndex*(margin + fontSize) + fontSize;
-			this.width = Math.max(this.height, totalHeight);
-		}
-		/* 左右方向排列的图例 */
-		else if (this.position === 'left' || this.position === 'right') {
-			let maxLegendWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__util_util__["b" /* max */])(lengthArray);
-			this.width = Math.max(this.width, maxLegendWidth);
-		}		
-	}
-
-	getWidth() {
-		return width;
-	}
-
-	computeShape() {
-		let context = this.context;
-
-		let r = 6;	
-		let margin = 6;
-		let fontSize = 12;
-		let lengthArray = this.data.map((item, index, array) => 2*r + margin + context.measureText(item).width);	
-
-		let shapeArray = [];
-
-		if(this.postion === 'top' || this.position === 'bottom') {
-			let lineIndex = 0;
-			let x = 0;
-
-			lengthArray.forEach(function (length, index) {
-				if((x + length) > this.length) {
-					/* 放不下, 另起一行 */
-					x = 0;
-					lineIndex++;	
-				}
-
-				let y = this.y + fontSize/2 + lineIndex*(fontSize + margin);
-
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_0__shape_circle__["a" /* Circle */]({
-					x: this.x + x + r,
-					y: y,
-					r: r,
-					style: {
-						fillStyle: this.color[index]
-					},
-					renderType: 'fill'
-				}));
-
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_text__["a" /* Text */]({
-					x: this.x + x + 2*r + margin,
-					y: y,
-					value: this.data[index],
-					style: {
-						textBaseline: 'middle',
-						textAlign: 'left'
-					}	
-				}));
-
-				x += length;
-			}, this);			
-		}
-
-		else if(this.position === 'left' || this.position === 'right') {
-			lengthArray.forEach(function (length, index) {
-				let y = this.y + fontSize/2 + index*(fontSize + margin);
-
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_0__shape_circle__["a" /* Circle */]({
-					x: this.x + r,
-					y: y,
-					r: r,
-					style: {
-						fillStyle: this.color[index]
-					},
-					renderType: 'fill'
-				}));
-
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_text__["a" /* Text */]({
-					x: this.x + 2*r + margin,
-					y: y,
-					value: this.data[index],
-					style: {
-						textBaseline: 'middle',
-						textAlign: 'left'
-					}	
-				}));
-			}, this);
-		}
-
-		return shapeArray;
-	}
-
-	getShape() {
-		this.update();
-		return this.shapeArray;
-	}
-}
-
-
-
-/***/ }),
-/* 11 */,
 /* 12 */,
 /* 13 */,
 /* 14 */,
@@ -1318,14 +1360,16 @@ class Legend {
 /* 16 */,
 /* 17 */,
 /* 18 */,
-/* 19 */
+/* 19 */,
+/* 20 */,
+/* 21 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_axis_linear__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_legend_legend__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_axis_linear__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_legend_legend__ = __webpack_require__(7);
 
 
 

@@ -4,16 +4,16 @@ import { color } from '../theme/macaron';
 import { max, sum } from '../util/util';
 
 class Legend {
-	constructor({ data, x, y, width, length, position = 'top', context }) {
+	constructor({ data, x, y, width, height, position = 'top', render }) {
 		this.data = data;
 		this.x = x;
 		this.y = y;
 		this.width = width;
-		this.length = length;
+		this.height = height;
 
 		this.position = position;
 
-		this.context = context;
+		this.render = render;
 
 		this.update();
 	}
@@ -28,7 +28,7 @@ class Legend {
 	}
 
 	fit() {
-		let context = this.context;
+		let context = this.render.getContext();
 		
 		let r = 6;	
 		let margin = 6;
@@ -39,7 +39,7 @@ class Legend {
 			let lineIndex = 0;
 			let x = 0;
 			lengthArray.forEach((length) => {
-				if((x + length) > this.length) {
+				if((x + length) > this.width) {
 					/* 放不下, 另起一行 */
 					x = 0;
 					lineIndex++;	
@@ -47,7 +47,7 @@ class Legend {
 			}, this);
 
 			let totalHeight = lineIndex*(margin + fontSize) + fontSize;
-			this.width = Math.max(this.height, totalHeight);
+			this.height = Math.max(this.height, totalHeight);
 		}
 		/* 左右方向排列的图例 */
 		else if (this.position === 'left' || this.position === 'right') {
@@ -57,11 +57,15 @@ class Legend {
 	}
 
 	getWidth() {
-		return width;
+		return this.width;
+	}
+
+	getHeight() {
+		return this.height;
 	}
 
 	computeShape() {
-		let context = this.context;
+		let context = this.render.getContext();
 
 		let r = 6;	
 		let margin = 6;
@@ -70,12 +74,12 @@ class Legend {
 
 		let shapeArray = [];
 
-		if(this.postion === 'top' || this.position === 'bottom') {
+		if(this.position === 'top' || this.position === 'bottom') {
 			let lineIndex = 0;
 			let x = 0;
 
 			lengthArray.forEach(function (length, index) {
-				if((x + length) > this.length) {
+				if((x + length) > this.width) {
 					/* 放不下, 另起一行 */
 					x = 0;
 					lineIndex++;	
@@ -103,7 +107,7 @@ class Legend {
 					}	
 				}));
 
-				x += length;
+				x += (length + margin);
 			}, this);			
 		}
 

@@ -16,35 +16,43 @@ class BarChart extends Base {
 	}
 
 	computeShape() {
-		let color = this.color;
-		let shapeArray = [];
-
 		let intervalWidth = this.width/(this.data.length + 1);
-		let barWidth = intervalWidth*0.4;
-		let tickArray = linearTick(min(this.data), max(this.data));
+
+		let data = this.data.reduce((pre, cur) => pre.concat(cur), []);
+
+		let tickArray = linearTick(min(data), max(data));
 		let minTick = min(tickArray);
 		let maxTick = max(tickArray);
 
 		let self = this;
 
-		return this.data.map((item, index) => {
-			let x = this.x + (index + 1)*intervalWidth - barWidth/2;
-			let barHeight = this.height*(item - minTick)/(maxTick - minTick);
-			let y = this.y + this.height - barHeight;
+		let shapeArray = this.data.map((group, groupIndex) => {
 
-			let rect = new Rect({
-				x: x,
-				y: y,
-				width: barWidth,
-				height: barHeight,
-				style: {
-					fillStyle: color[index]
-				},
-				isAnimation: true
+			return group.map((item, index) => {
+				let margin = 6;
+				let groupWidth = intervalWidth*0.8;
+				let barWidth = (groupWidth - (group.length - 1)*margin)/group.length;
+				let barHeight = self.height*(item - minTick)/(maxTick - minTick);
+
+				let x = self.x + (groupIndex + 1)*intervalWidth - groupWidth/2 + index*(barWidth + margin);
+				let y = self.y + self.height - barHeight;
+
+				let rect = new Rect({
+					x: x,
+					y: y,
+					width: barWidth,
+					height: barHeight,
+					style: {
+						fillStyle: self.color[index]
+					},
+					isAnimation: true
+				});
+
+				return rect;
 			});
+		});
 
-			return rect;
-		}, this);
+		return shapeArray;
 	}
 }
 

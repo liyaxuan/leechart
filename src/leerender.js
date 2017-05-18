@@ -35,7 +35,7 @@ export class LeeRender {
 					let isPreIn = shape.isPointIn(self.context, preMouseOverX, preMouseOverY);
 					let isCurIn = shape.isPointIn(self.context, x, y);
 
-					if(isCurIn)
+					if(isPreIn && isCurIn)
 						shape.onmousemove.forEach((callback) => callback(self.context, x, y));
 					if(isCurIn && !isPreIn)
 						shape.onmouseover.forEach((callback) => callback(self.context, x, y));

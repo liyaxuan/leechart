@@ -8,9 +8,10 @@ import { ToolTip } from './tooltip/tooltip';
 import { Rect } from './shape/rect';
 import { LeeRender } from './leerender';
 import STYLE from './theme/macaron';
+import { sum, unique, getCol, getDimData } from './util/util';
 
 class LeeChart {
-	constructor(container, { width = 480, height = 480, padding = { left: 50, right: 50, top: 50, bottom: 50 } } = {} ) {
+	constructor(container, { width = 960, height = 480, padding = { left: 50, right: 50, top: 50, bottom: 50 } } = {} ) {
 		this.width = width;
 		this.height = height;
 		this.padding = padding;
@@ -58,10 +59,48 @@ class LeeChart {
 		return this;
 	}
 
-	x(colName) {
+	x(col) {
 		if(/line|point|bar/.test(this._type)) {
-			this._xData = this._data.map(item => item[colName]);
+			this._xCol = col;
+			this._xData = unique(getCol(this._data, col));
+		}
+			
+		return this;
+	}
 
+	y(col) {
+		if(/line|point|bar/.test(this._type)) {
+			this._yCol = col;
+			this._yData = getDimData(this._data, this._xCol, this._yCol, this._colorCol);
+		}
+			
+		return this;
+	}
+
+	theta(col) {
+		if(/pie|doughnut|polar|radar/.test(this._type)) {
+			this._thetaCol = col;
+		}
+			
+		return this;			
+	}
+
+	r(col) {
+		if(/pie|doughnut|polar|radar/.test(this._type))
+			this._rCol = col;
+		return this;
+	}
+
+	color(col) {
+		this._colorCol = col;
+		this._colorData = unique(getCol(this._data, col));
+
+		return this;
+	}
+
+	/* 构建坐标轴和图表 */
+	build() {
+		if(/line|point|bar/.test(this._type)) {
 			this._xAxis = new LinearAxis({
 				data: this._xData,
 				x: this.padding.left,
@@ -73,17 +112,9 @@ class LeeChart {
 				isSpace: this._type === 'bar' ? true : false,
 				context: this.backRender.getContext()
 			});	
-		}
-			
-		return this;
-	}
-
-	y(colName) {
-		if(/line|point|bar/.test(this._type)) {
-			this._yData = this._data.map(item => item[colName]);
 
 			this._yAxis = new LinearAxis({
-				data: this._yData,
+				data: this._yData.reduce((pre, cur) => pre.concat(cur), []),
 				x: 0,
 				y: this.padding.top,
 				width: this.padding.left,
@@ -109,16 +140,9 @@ class LeeChart {
 				this._chart = new LineChart(config);
 			}
 			else
-				this._chart = new PointChart(config);		
+				this._chart = new PointChart(config);				
 		}
-			
-		return this;
-	}
-
-	theta(colName) {
-		if(/pie|doughnut|polar|radar/.test(this._type)) {
-			this._thetaData = this._data.map(item => item[colName]);
-
+		else if(/pie|doughnut|polar|radar/.test(this._type)) {
 			this._chart = new PieChart({
 				data: this._thetaData,
 				x: this.padding.left,
@@ -128,25 +152,10 @@ class LeeChart {
 				render: this.bodyRender
 			})
 		}
-			
-		return this;			
-	}
 
-	r(colName) {
-		if(/pie|doughnut|polar|radar/.test(this._type))
-			this._rData = this._data.map(item => item[colName]);
-		return this;
-	}
+		let length = Math.max(this._colorData.length, 1);
+		this._chart.color(STYLE.color.slice(0, length));
 
-	size(colName) {
-		this._sizeData = this._data.map(item => item[colName]);
-		return this;
-	}
-
-	color(colName) {
-		if(this._chart) {
-			this._chart.color(STYLE.color.slice(0, this._data.length));
-		}
 		return this;
 	}
 
@@ -196,23 +205,6 @@ class LeeChart {
 
 			this.fit();
 
-			// let obj = this._xAxis.getBoundingRect(backContext);
-
-			// obj.style = { fillStyle : 'rgba(0, 255, 0, 0.50)' };
-
-			// this.backRender.addShape(new Rect(obj));
-			// this.backRender.addShape(new Rect({
-			// 	x: this.padding.left,
-			// 	y: this.padding.top,
-			// 	width: this.bodyWidth,
-			// 	height: this.bodyHeight,
-			// 	style: {
-			// 		fillStyle: 'rgba(255, 0, 0, 0.50)'
-			// 	}
-			// }));
-
-
-
 			this.backRender.addShape(this._xAxis.getShape(backContext));
 			this.backRender.addShape(this._yAxis.getShape(backContext));
 		}
@@ -228,27 +220,33 @@ class LeeChart {
 		};
 
 		this._toolTip = new ToolTip({
-			data: { name: '李亚轩', age: 22, weight: 67, height: 183 },
+			data: this._data[0],
 			x: chartBody.x,
 			y: chartBody.y,
 			chartBody: chartBody,
 			render: this.frontRender
 		});
 
-		this._chart.onmouseover = (function (context, x, y, index) {
-			this._toolTip.data = this._data[index];
+		this._chart.onmouseover = (function (context, x, y, groupIndex, index) {
+			let data = {
+				[this._xCol]: this._xData[groupIndex],
+				[this._yCol]: this._yData[groupIndex][index],
+				[this._colorColor]: this._colorData[index]
+			};
+
+			this._toolTip.data = data;
 			this._toolTip.x = x;
 			this._toolTip.y = y;
 			this._toolTip.show();
 		}).bind(this);
 
-		this._chart.onmousemove = (function (context, x, y, index) {
+		this._chart.onmousemove = (function (context, x, y, groupIndex, index) {
 			this._toolTip.x = x;
 			this._toolTip.y = y;
-			this._toolTip.update();
+			this._toolTip.move();
 		}).bind(this);
 
-		this._chart.onmouseout = (function (context, x, y, index) {
+		this._chart.onmouseout = (function (context, x, y, groupIndex, index) {
 			this._toolTip.hide();	
 		}).bind(this);
 
