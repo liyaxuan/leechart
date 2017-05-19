@@ -1,41 +1,47 @@
-import { linearTick, max, min } from '../util/util';
+import { linearTick, max, min, group, getCol, unique, } from '../util/util';
 import { Rect } from '../shape/rect';
 import { ToolTip } from '../tooltip/tooltip';
-import { Base } from './base'
+import { Geometry } from './geometry'
 
-class BarChart extends Base {
-	constructor({ data, x, y, width, height, render }) {
+let margin = 6;
+
+class BarChart extends Geometry {
+	constructor({ data, dim, x, y, width, height, render, space, isStacked = false }) {
 		super({
 			data: data,
+			dim: dim,
 			x: x,
 			y: y,
 			width: width,
 			height: height,
-			render: render
+			render: render,
+			space: space
 		});
+
+		this.isStacked = isStacked;
 	}
 
 	computeShape() {
-		let intervalWidth = this.width/(this.data.length + 1);
+		let dim = this.dim;
+		let { xData, yData, colorData } = this.computeData();
 
-		let data = this.data.reduce((pre, cur) => pre.concat(cur), []);
+		let space = this.space;
+		let intervalWidth = (this.width - 2*space)/yData.length;
+		let areaWidth = 0.8*intervalWidth;
+		let barWidth = (areaWidth - (yData[0].length - 1)*margin)/yData[0].length;
 
-		let tickArray = linearTick(min(data), max(data));
-		let minTick = min(tickArray);
-		let maxTick = max(tickArray);
+		let { minTick, maxTick } = this.computeTick(yData);
 
-		let self = this;
+		let shapeArray = yData.map((group, groupIndex) => {
 
-		let shapeArray = this.data.map((group, groupIndex) => {
+			let startX = this.x + space + groupIndex*intervalWidth + intervalWidth/2 - areaWidth/2;
 
 			return group.map((item, index) => {
-				let margin = 6;
-				let groupWidth = intervalWidth*0.8;
-				let barWidth = (groupWidth - (group.length - 1)*margin)/group.length;
-				let barHeight = self.height*(item - minTick)/(maxTick - minTick);
 
-				let x = self.x + (groupIndex + 1)*intervalWidth - groupWidth/2 + index*(barWidth + margin);
-				let y = self.y + self.height - barHeight;
+				let x = startX + index*(barWidth + margin);
+				let barHeight = this.height*(item - minTick)/(maxTick - minTick);
+				let y = this.y + this.height - barHeight;
+				let color = dim.color ? this.color[index] : this.color[groupIndex]
 
 				let rect = new Rect({
 					x: x,
@@ -43,16 +49,25 @@ class BarChart extends Base {
 					width: barWidth,
 					height: barHeight,
 					style: {
-						fillStyle: self.color[index]
+						fillStyle: color
 					},
 					isAnimation: true
 				});
 
-				return rect;
-			});
-		});
+				let obj = {
+					[dim.x]: xData[groupIndex],
+					[dim.y]: yData[groupIndex][index]			
+				};
+				if(colorData)
+					obj[dim.color] = colorData[index];
 
-		return shapeArray;
+				this.on(rect, obj);
+
+				return rect;
+			}, this);
+		}, this);
+
+		return shapeArray.reduce((pre, cur) => pre.concat(cur), []);
 	}
 }
 

@@ -2,73 +2,90 @@ import { linearTick, max, min } from '../util/util';
 import { Circle } from '../shape/circle';
 import { Line } from '../shape/line';
 import { BezierCurve } from '../shape/bezier-curve';
-import { Base } from './base'
+import { Geometry } from './geometry'
 
-class LineChart extends Base {
-	constructor({ data, x, y, width, height, render, isBezierCurve = true, isArea = true }) {
+class LineChart extends Geometry {
+	constructor({ data, dim, x, y, width, height, render, space, isBezierCurve = true, isArea = true }) {
 		super({
 			data: data,
+			dim: dim,
 			x: x,
 			y: y,
 			width: width,
 			height: height,
-			render: render
+			render: render,
+			space: space
 		});
 
 		this.isBezierCurve = isBezierCurve;
 		this.isArea = isArea;
 	}
 
-	computeShape(data) {
-		let color = this.color;
-		let intervalWidth = this.width/(this.data.length - 1);
-		let tickArray = linearTick(min(this.data), max(this.data));
-		let minTick = min(tickArray);
-		let maxTick = max(tickArray);
+	computeShape() {
+		let dim = this.dim;
+		let { xData, yData, colorData } = this.computeData();
 
-		let lastX = 0;
-		let lastY = 0;
+		let space = this.space;
+		let intervalWidth = (this.width - 2*space)/(yData.length - 1);
+
+		let { minTick, maxTick } = this.computeTick(yData);
+
+		let T = this.isBezierCurve ? BezierCurve : Line;
+
 		let shapeArray = [];
+		let pointArray = [];
 
-		let pointArray = this.data.map((item, index) => {
-			let x = this.x + index*intervalWidth;
-			let pointHeight = this.height*(item - minTick)/(maxTick - minTick);
-			let y = this.y + this.height - pointHeight;
+		yData.forEach((group, groupIndex) => {
+			group.forEach((item, index) => {
+				let x = this.x + space + groupIndex*intervalWidth;
+				let pointHeight = this.height*(item - minTick)/(maxTick - minTick);
+				let y = this.y + this.height - pointHeight;
 
-			return {
-				x: x,
-				y: y
-			};
+				let circle = new Circle({
+					x: x,
+					y: y,
+					r: 3,
+					style: {
+						fillStyle: '#ffffff',
+						strokeStyle: this.color[index],
+						lineWidth: 2
+					},
+					renderType: 'fillstroke',
+					zIndex: 2,
+					isAnimation: true
+				});
+
+				let obj = {
+					[dim.x]: xData[groupIndex],
+					[dim.y]: yData[groupIndex][index]			
+				};
+				if(colorData)
+					obj[dim.color] = colorData[index];
+
+				this.on(circle, obj);
+
+				shapeArray.push(circle);
+
+				pointArray[index] = pointArray[index] || [];
+				pointArray[index].push({ x, y });
+			}, this);
 		}, this);
 
-		let T = Line;
-		if(this.isBezierCurve)
-			T = BezierCurve;
-
-		let line = new T({
-			pointArray: pointArray,
-			style: {
-				strokeStyle: color[0],
-				lineWidth: 2,
-			},
-			zIndex: 1,
-			isAnimation: true			
-		});
-
-		return [line].concat(pointArray.map(({ x,y }) => {
-			return new Circle({
-				x: x,
-				y: y,
-				r: 3,
+		pointArray.forEach((item, index) => {
+			let line = new T({
+				pointArray: item,
 				style: {
-					fillStyle: '#ffffff',
-					strokeStyle: color[0],
-					lineWidth: 2
+					strokeStyle: this.color[index],
+					lineWidth: 2,
 				},
-				renderType: 'fillstroke',
-				zIndex: 2
+				zIndex: 1,
+				isAnimation: true			
 			});
-		}));
+
+			shapeArray.push(line);
+		}, this);
+
+		return shapeArray;
 	}
 }
 

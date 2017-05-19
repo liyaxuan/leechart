@@ -189,7 +189,7 @@ class Shape {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return unique; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return uuid; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return getCol; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return getDimData; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return group; });
 function max(array) {
 	return Math.max.apply({}, array);
 }
@@ -346,14 +346,14 @@ function getCol(data, col) {
 		return [];
 }
 
-function getDimData(data, dim1, resultDim, dim2) {
+function group(data, resultDim, dim1, dim2) {
 	let dim1Array = unique(getCol(data, dim1));
 	let dim2Array = dim2 ? unique(getCol(data, dim2)) : [];
 
 	let result = [];
 
-	data.forEach(item => {
-		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);
+	data.forEach((item) => {
+		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);		
 		result[i] = result[i] || [];
 		if(dim2) {
 			let j = dim2Array.findIndex(dim2Item => dim2Item === item[dim2]);
@@ -361,7 +361,7 @@ function getDimData(data, dim1, resultDim, dim2) {
 		}
 		else
 			result[i].push(item[resultDim]);
-	}, this);
+	});
 
 	return result;	
 }
@@ -506,6 +506,55 @@ function getDimData(data, dim1, resultDim, dim2) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Rect; });
+
+
+
+class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ x, y, width, height, style, renderType, groupId, zIndex, isAnimation }) {
+		super({
+			type: 'rect',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex,
+			isAnimation: isAnimation
+		});
+
+		this.x = x;
+		this.originalY = y;
+		this.y = y;
+		this.width = width;
+		this.originalHeight = height;
+		this.height = height;
+	}
+
+	buildPath(context) {
+		context.beginPath();
+		context.rect(this.x, this.y, this.width, this.height);		
+	}
+
+	animate(currentTime, duration) {
+		let currentHeight = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalHeight, duration);
+		this.height = Math.min(currentHeight, this.originalHeight);
+		this.y = this.originalY + this.originalHeight - this.height;
+	}
+
+	isPointIn(context, x, y) {
+		this.buildPath(context);
+		return context.isPointInPath(x, y);
+	}
+}
+
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_shape__ = __webpack_require__(0);
 
 
@@ -605,8 +654,9 @@ class LeeRender {
 
 	removeShape(shape) {
 		this._removeItem(this.shapeLayer[shape.zIndex], shape);
-		if(shape.groupId && this.shapeGroup[shape.groupId])
+		if(shape.groupId && this.shapeGroup[shape.groupId]) {
 			this._removeItem(this.shapeGroup[shape.groupId], shape);
+		}
 	}
 
 	getContext() {
@@ -632,7 +682,7 @@ class LeeRender {
 
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -734,68 +784,20 @@ class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
 	}
 
 	render(context) {
+		context.save();
 		for(let attr in this.style)
 			context[attr] = this.style[attr];
 
 		if(this.rotate !== 0) {
-			context.save();
 			context.translate(this.x, this.y);
 			context.rotate(this.rotate);
-			context.fillText(this.value, 0, 0);
-			context.restore();			
+			context.fillText(this.value, 0, 0);		
 		}
 		else {
+
 			context.fillText(this.value, this.x, this.y);
 		}
-	}
-}
-
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Rect; });
-
-
-
-class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
-	constructor({ x, y, width, height, style, renderType, groupId, zIndex, isAnimation }) {
-		super({
-			type: 'rect',
-			style: style,
-			renderType: renderType,
-			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
-		});
-
-		this.x = x;
-		this.originalY = y;
-		this.y = y;
-		this.width = width;
-		this.originalHeight = height;
-		this.height = height;
-	}
-
-	buildPath(context) {
-		context.beginPath();
-		context.rect(this.x, this.y, this.width, this.height);		
-	}
-
-	animate(currentTime, duration) {
-		let currentHeight = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalHeight, duration);
-		this.height = Math.min(currentHeight, this.originalHeight);
-		this.y = this.originalY + this.originalHeight - this.height;
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
+		context.restore();	
 	}
 }
 
@@ -803,6 +805,40 @@ class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 /***/ }),
 /* 6 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony default export */ __webpack_exports__["a"] = ({
+	color: [
+	    '#2ec7c9','#b6a2de','#5ab1ef','#ffb980','#d87a80',
+	    '#8d98b3','#e5cf0d','#97b552','#95706d','#dc69aa',
+	    '#07a2a4','#9a7fd1','#588dd5','#f5994e','#c05050',
+	    '#59678c','#c9ab00','#7eb00a','#6f5553','#c14089'
+	],
+	axis: {
+		tick: {
+			length: 8,
+			margin: 4,
+			color: '008acd'
+		},
+		label: {
+			color: '#008acd'
+		},
+		grid: {
+			color: '#eeeeee'
+		}
+	},
+	legend: {
+		shape: 'rect',
+		width: 12,
+		/* shape: 'circle'
+		r: 6 */
+		margin: 4
+	}
+});
+
+/***/ }),
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -848,22 +884,31 @@ class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_circle__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_text__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__theme_macaron__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_rect__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_circle__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__theme_macaron__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__util_util__ = __webpack_require__(1);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Legend; });
 
 
 
 
 
+
+let r = 6;	
+let margin = 6;
+let padding = 12;
+let fontSize = 12;
+
 class Legend {
-	constructor({ data, x, y, width, height, position = 'top', render }) {
+	/* 水平方向 left center right */
+	/* 竖直方向 top middle bottom */
+	constructor({ data, x = 0, y = 0, width, height, position = 'top', align = 'center', render }) {
 		this.data = data;
 		this.x = x;
 		this.y = y;
@@ -873,81 +918,73 @@ class Legend {
 		this.position = position;
 
 		this.render = render;
-
-		this.update();
 	}
 
 	color(color) {
 		this.color = color;
 	}
 
-	update() {
-		this.fit();
-		this.shapeArray = this.computeShape();
+	computeLength() {
+		let context = this.render.getContext();
+		return this.data.map((category, index, array) => 2*r + margin + context.measureText(category).width);
+	}
+
+	computeRow() {
+		let lengthArray = this.computeLength();
+		let rowIndex = 0;
+		let xOffset = 0;
+
+		let rowArray = []
+
+		lengthArray.map((length) => {
+			if((xOffset + length) > this.width) {
+				/* 放不下, 另起一行 */
+				xOffset = 0;
+				rowIndex++;	
+			}
+
+			rowArray.push({
+				rowIndex: rowIndex,
+				xOffset: xOffset
+			});
+
+			xOffset += (length + margin);
+		}, this);
+
+		return rowArray;
 	}
 
 	fit() {
-		let context = this.render.getContext();
-		
-		let r = 6;	
-		let margin = 6;
-		let fontSize = 12;
-		let lengthArray = this.data.map((category, index, array) => 2*r + margin + context.measureText(category).width);
-
-		if(this.postion === 'top' || this.position === 'bottom') {
-			let lineIndex = 0;
-			let x = 0;
-			lengthArray.forEach((length) => {
-				if((x + length) > this.width) {
-					/* 放不下, 另起一行 */
-					x = 0;
-					lineIndex++;	
-				}
-			}, this);
-
-			let totalHeight = lineIndex*(margin + fontSize) + fontSize;
-			this.height = Math.max(this.height, totalHeight);
+		if(this.position === 'top' || this.position === 'bottom') {
+			let rowArray = this.computeRow();
+			let rowCount = rowArray.slice(-1)[0].rowIndex + 1;
+			let boundingHeight = (rowCount - 1)*(margin + fontSize) + fontSize;
+			this.height = Math.max(this.height, boundingHeight + 2*padding);
 		}
 		/* 左右方向排列的图例 */
 		else if (this.position === 'left' || this.position === 'right') {
-			let maxLegendWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__util_util__["a" /* max */])(lengthArray);
-			this.width = Math.max(this.width, maxLegendWidth);
-		}		
-	}
-
-	getWidth() {
-		return this.width;
-	}
-
-	getHeight() {
-		return this.height;
+			let lengthArray = this.computeLength();
+			let maxLegendWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__util_util__["a" /* max */])(lengthArray);
+			this.width = Math.max(this.width, maxLegendWidth + 2*padding);
+		}
 	}
 
 	computeShape() {
-		let context = this.render.getContext();
-
-		let r = 6;	
-		let margin = 6;
-		let fontSize = 12;
-		let lengthArray = this.data.map((item, index, array) => 2*r + margin + context.measureText(item).width);	
-
+		let lengthArray = this.computeLength();
 		let shapeArray = [];
 
 		if(this.position === 'top' || this.position === 'bottom') {
-			let lineIndex = 0;
-			let x = 0;
+			let rowArray = this.computeRow();
+			let rowCount = rowArray.slice(-1)[0].rowIndex + 1;
 
-			lengthArray.forEach(function (length, index) {
-				if((x + length) > this.width) {
-					/* 放不下, 另起一行 */
-					x = 0;
-					lineIndex++;	
-				}
+			let boundingWidth = rowArray.reduce((pre, cur, curIndex) => Math.max(cur.xOffset + lengthArray[curIndex], pre), 0);
+			let boundingHeight = (rowCount - 1)*(fontSize + margin) + fontSize;
 
-				let y = this.y + fontSize/2 + lineIndex*(fontSize + margin);
-
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_0__shape_circle__["a" /* Circle */]({
-					x: this.x + x + r,
+			rowArray.forEach(function (item, index) {
+				let y = this.y + this.height/2 - boundingHeight/2 + fontSize/2 +  item.rowIndex*(fontSize + margin);
+				
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_circle__["a" /* Circle */]({
+					x: this.x + this.width/2 - boundingWidth/2 + item.xOffset + r,
 					y: y,
 					r: r,
 					style: {
@@ -956,8 +993,8 @@ class Legend {
 					renderType: 'fill'
 				}));
 
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_text__["a" /* Text */]({
-					x: this.x + x + 2*r + margin,
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_2__shape_text__["a" /* Text */]({
+					x: this.x + this.width/2 - boundingWidth/2 + item.xOffset + 2*r + margin,
 					y: y,
 					value: this.data[index],
 					style: {
@@ -965,16 +1002,14 @@ class Legend {
 						textAlign: 'left'
 					}	
 				}));
-
-				x += (length + margin);
-			}, this);			
+			}, this);		
 		}
 
 		else if(this.position === 'left' || this.position === 'right') {
 			lengthArray.forEach(function (length, index) {
 				let y = this.y + fontSize/2 + index*(fontSize + margin);
 
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_0__shape_circle__["a" /* Circle */]({
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_circle__["a" /* Circle */]({
 					x: this.x + r,
 					y: y,
 					r: r,
@@ -984,7 +1019,7 @@ class Legend {
 					renderType: 'fill'
 				}));
 
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_text__["a" /* Text */]({
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_2__shape_text__["a" /* Text */]({
 					x: this.x + 2*r + margin,
 					y: y,
 					value: this.data[index],
@@ -999,47 +1034,24 @@ class Legend {
 		return shapeArray;
 	}
 
+	getWidth() {
+		this.fit();
+		return this.width;
+	}
+
+	getHeight() {
+		this.fit();
+		return this.height;
+	}
+
 	getShape() {
-		this.update();
+		this.fit();
+		this.shapeArray = this.computeShape();
 		return this.shapeArray;
 	}
 }
 
 
-
-/***/ }),
-/* 8 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony default export */ __webpack_exports__["a"] = ({
-	color: [
-	    '#2ec7c9','#b6a2de','#5ab1ef','#ffb980','#d87a80',
-	    '#8d98b3','#e5cf0d','#97b552','#95706d','#dc69aa',
-	    '#07a2a4','#9a7fd1','#588dd5','#f5994e','#c05050',
-	    '#59678c','#c9ab00','#7eb00a','#6f5553','#c14089'
-	],
-	axis: {
-		tick: {
-			length: 8,
-			margin: 4,
-			color: '008acd'
-		},
-		label: {
-			color: '#008acd'
-		},
-		grid: {
-			color: '#eeeeee'
-		}
-	},
-	legend: {
-		shape: 'rect',
-		width: 12,
-		/* shape: 'circle'
-		r: 6 */
-		margin: 4
-	}
-});
 
 /***/ }),
 /* 9 */,
@@ -1061,10 +1073,10 @@ class Legend {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_legend_legend__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__src_theme_macaron__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_legend_legend__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__src_theme_macaron__ = __webpack_require__(6);
 
 
 

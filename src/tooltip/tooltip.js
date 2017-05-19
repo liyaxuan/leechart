@@ -2,6 +2,11 @@ import { Text } from '../shape/text';
 import { RoundRect } from '../shape/round-rect';
 import { max, uuid } from '../util/util';
 
+let padding = 6;
+let r = 6;
+let margin = 6;
+let fontSize = 12;
+
 class ToolTip {
 	constructor({ data, x, y, chartBody, render }) {
 		this.data = data;
@@ -16,8 +21,6 @@ class ToolTip {
 		this.shapeArray = [];
 
 		this.isDisplay = false;
-
-		this.update();
 	}
 
 	color(color) {
@@ -43,32 +46,35 @@ class ToolTip {
 	}
 
 	move() {
-		this.shapeArray.forEach(shape => this.render.removeShape(shape), this);
-		this.render.addShape(this.getShape());
-		this.render.requestRender();
-	}
+		let { x, y, width, height } = this.computeBoundingRect();
 
-	update() {
-		this.textArray = this.computeText();
-		this.shapeArray = this.computeShape();
+		this.shapeArray.forEach((shape, index) => {
+			if(shape instanceof Text) {
+				shape.x = x + padding;
+				shape.y = y + padding + fontSize/2 + (index - 1)*(fontSize + margin);
+			}
+			else if(shape instanceof RoundRect) {
+				shape.x = x;
+				shape.y = y;
+			}
+		}, this);
+
+		this.render.requestRender();
 	}
 
 	computeText() {
 		let textArray = [];
 		for(let key in this.data) {
-			textArray.push(`${key}: ${this.data[key]}`);
+			if(this.data[key])
+				textArray.push(`${key}: ${this.data[key]}`);
 		}
 		return textArray;	
 	}
 
-	computeShape() {
+	computeBoundingRect() {
 		let context = this.render.getContext();
 
 		let maxTextWidth = max(this.textArray.map(text => context.measureText(text).width));
-		let padding = 6;
-		let r = 6;
-		let margin = 6;
-		let fontSize = 12;
 
 		let width = maxTextWidth + padding*2;
 		let height = (this.textArray.length - 1)*(fontSize + margin) + fontSize + 2*padding;
@@ -83,6 +89,12 @@ class ToolTip {
 		else
 			x = this.x - xOffset - width;
 
+		return { x, y, width, height };		
+	}
+
+	computeShape() {
+		let { x, y, width, height } = this.computeBoundingRect();
+
 		let roundRect = new RoundRect({
 			x: x,
 			y: y,
@@ -90,7 +102,7 @@ class ToolTip {
 			height: height,
 			r: r,
 			style: {
-				fillStyle: 'rgba(50,50,50,0.5)'
+				fillStyle: 'rgba(50,50,50,0.8)'
 			},
 			groupId: this.id,
 			zIndex: 2
@@ -115,7 +127,8 @@ class ToolTip {
 	}
 
 	getShape() {
-		this.update();
+		this.textArray = this.computeText();
+		this.shapeArray = this.computeShape();
 		return this.shapeArray;
 	}
 }

@@ -316,8 +316,8 @@ class Shape {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(3);
 
 
 
@@ -337,6 +337,56 @@ leeRender.render();
 /***/ }),
 
 /***/ 3:
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Rect; });
+
+
+
+class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ x, y, width, height, style, renderType, groupId, zIndex, isAnimation }) {
+		super({
+			type: 'rect',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex,
+			isAnimation: isAnimation
+		});
+
+		this.x = x;
+		this.originalY = y;
+		this.y = y;
+		this.width = width;
+		this.originalHeight = height;
+		this.height = height;
+	}
+
+	buildPath(context) {
+		context.beginPath();
+		context.rect(this.x, this.y, this.width, this.height);		
+	}
+
+	animate(currentTime, duration) {
+		let currentHeight = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalHeight, duration);
+		this.height = Math.min(currentHeight, this.originalHeight);
+		this.y = this.originalY + this.originalHeight - this.height;
+	}
+
+	isPointIn(context, x, y) {
+		this.buildPath(context);
+		return context.isPointInPath(x, y);
+	}
+}
+
+
+
+/***/ }),
+
+/***/ 4:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -439,8 +489,9 @@ class LeeRender {
 
 	removeShape(shape) {
 		this._removeItem(this.shapeLayer[shape.zIndex], shape);
-		if(shape.groupId && this.shapeGroup[shape.groupId])
+		if(shape.groupId && this.shapeGroup[shape.groupId]) {
 			this._removeItem(this.shapeGroup[shape.groupId], shape);
+		}
 	}
 
 	getContext() {
@@ -463,56 +514,6 @@ class LeeRender {
 	}
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = LeeRender;
-
-
-/***/ }),
-
-/***/ 5:
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Rect; });
-
-
-
-class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
-	constructor({ x, y, width, height, style, renderType, groupId, zIndex, isAnimation }) {
-		super({
-			type: 'rect',
-			style: style,
-			renderType: renderType,
-			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
-		});
-
-		this.x = x;
-		this.originalY = y;
-		this.y = y;
-		this.width = width;
-		this.originalHeight = height;
-		this.height = height;
-	}
-
-	buildPath(context) {
-		context.beginPath();
-		context.rect(this.x, this.y, this.width, this.height);		
-	}
-
-	animate(currentTime, duration) {
-		let currentHeight = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalHeight, duration);
-		this.height = Math.min(currentHeight, this.originalHeight);
-		this.y = this.originalY + this.originalHeight - this.height;
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
-	}
-}
-
 
 
 /***/ })

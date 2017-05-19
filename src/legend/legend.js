@@ -1,10 +1,18 @@
+import { Rect } from '../shape/rect';
 import { Circle } from '../shape/circle';
 import { Text } from '../shape/text';
 import { color } from '../theme/macaron';
 import { max, sum } from '../util/util';
 
+let r = 6;	
+let margin = 6;
+let padding = 12;
+let fontSize = 12;
+
 class Legend {
-	constructor({ data, x, y, width, height, position = 'top', render }) {
+	/* 水平方向 left center right */
+	/* 竖直方向 top middle bottom */
+	constructor({ data, x = 0, y = 0, width, height, position = 'top', align = 'center', render }) {
 		this.data = data;
 		this.x = x;
 		this.y = y;
@@ -14,81 +22,73 @@ class Legend {
 		this.position = position;
 
 		this.render = render;
-
-		this.update();
 	}
 
 	color(color) {
 		this.color = color;
 	}
 
-	update() {
-		this.fit();
-		this.shapeArray = this.computeShape();
+	computeLength() {
+		let context = this.render.getContext();
+		return this.data.map((category, index, array) => 2*r + margin + context.measureText(category).width);
+	}
+
+	computeRow() {
+		let lengthArray = this.computeLength();
+		let rowIndex = 0;
+		let xOffset = 0;
+
+		let rowArray = []
+
+		lengthArray.map((length) => {
+			if((xOffset + length) > this.width) {
+				/* 放不下, 另起一行 */
+				xOffset = 0;
+				rowIndex++;	
+			}
+
+			rowArray.push({
+				rowIndex: rowIndex,
+				xOffset: xOffset
+			});
+
+			xOffset += (length + margin);
+		}, this);
+
+		return rowArray;
 	}
 
 	fit() {
-		let context = this.render.getContext();
-		
-		let r = 6;	
-		let margin = 6;
-		let fontSize = 12;
-		let lengthArray = this.data.map((category, index, array) => 2*r + margin + context.measureText(category).width);
-
-		if(this.postion === 'top' || this.position === 'bottom') {
-			let lineIndex = 0;
-			let x = 0;
-			lengthArray.forEach((length) => {
-				if((x + length) > this.width) {
-					/* 放不下, 另起一行 */
-					x = 0;
-					lineIndex++;	
-				}
-			}, this);
-
-			let totalHeight = lineIndex*(margin + fontSize) + fontSize;
-			this.height = Math.max(this.height, totalHeight);
+		if(this.position === 'top' || this.position === 'bottom') {
+			let rowArray = this.computeRow();
+			let rowCount = rowArray.slice(-1)[0].rowIndex + 1;
+			let boundingHeight = (rowCount - 1)*(margin + fontSize) + fontSize;
+			this.height = Math.max(this.height, boundingHeight + 2*padding);
 		}
 		/* 左右方向排列的图例 */
 		else if (this.position === 'left' || this.position === 'right') {
+			let lengthArray = this.computeLength();
 			let maxLegendWidth = max(lengthArray);
-			this.width = Math.max(this.width, maxLegendWidth);
-		}		
-	}
-
-	getWidth() {
-		return this.width;
-	}
-
-	getHeight() {
-		return this.height;
+			this.width = Math.max(this.width, maxLegendWidth + 2*padding);
+		}
 	}
 
 	computeShape() {
-		let context = this.render.getContext();
-
-		let r = 6;	
-		let margin = 6;
-		let fontSize = 12;
-		let lengthArray = this.data.map((item, index, array) => 2*r + margin + context.measureText(item).width);	
-
+		let lengthArray = this.computeLength();
 		let shapeArray = [];
 
 		if(this.position === 'top' || this.position === 'bottom') {
-			let lineIndex = 0;
-			let x = 0;
+			let rowArray = this.computeRow();
+			let rowCount = rowArray.slice(-1)[0].rowIndex + 1;
 
-			lengthArray.forEach(function (length, index) {
-				if((x + length) > this.width) {
-					/* 放不下, 另起一行 */
-					x = 0;
-					lineIndex++;	
-				}
+			let boundingWidth = rowArray.reduce((pre, cur, curIndex) => Math.max(cur.xOffset + lengthArray[curIndex], pre), 0);
+			let boundingHeight = (rowCount - 1)*(fontSize + margin) + fontSize;
 
-				let y = this.y + fontSize/2 + lineIndex*(fontSize + margin);
-
+			rowArray.forEach(function (item, index) {
+				let y = this.y + this.height/2 - boundingHeight/2 + fontSize/2 +  item.rowIndex*(fontSize + margin);
+				
 				shapeArray.push(new Circle({
-					x: this.x + x + r,
+					x: this.x + this.width/2 - boundingWidth/2 + item.xOffset + r,
 					y: y,
 					r: r,
 					style: {
@@ -98,7 +98,7 @@ class Legend {
 				}));
 
 				shapeArray.push(new Text({
-					x: this.x + x + 2*r + margin,
+					x: this.x + this.width/2 - boundingWidth/2 + item.xOffset + 2*r + margin,
 					y: y,
 					value: this.data[index],
 					style: {
@@ -106,9 +106,7 @@ class Legend {
 						textAlign: 'left'
 					}	
 				}));
-
-				x += (length + margin);
-			}, this);			
+			}, this);		
 		}
 
 		else if(this.position === 'left' || this.position === 'right') {
@@ -140,8 +138,19 @@ class Legend {
 		return shapeArray;
 	}
 
+	getWidth() {
+		this.fit();
+		return this.width;
+	}
+
+	getHeight() {
+		this.fit();
+		return this.height;
+	}
+
 	getShape() {
-		this.update();
+		this.fit();
+		this.shapeArray = this.computeShape();
 		return this.shapeArray;
 	}
 }

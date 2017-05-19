@@ -1,58 +1,124 @@
-import { linearTick, max, min, sum } from '../util/util';
+import { linearTick, max, min, sum, unique, getCol, group } from '../util/util';
 import { Line } from '../shape/line';
 import { Sector } from '../shape/sector';
-import { Base } from './base'
+import { Geometry } from './geometry'
 
-class PieChart extends Base {
-	constructor({ data, x, y, width, height, render, type = 'polar' }) {
+class PieChart extends Geometry {
+	constructor({ data, dim, x, y, width, height, render, space, type = 'pie' }) {
 		super({
 			data: data,
+			dim: dim,
 			x: x,
 			y: y,
 			width: width,
 			height: height,
-			render: render
+			render: render,
+			space: space
 		});
 
 		this.type = type;
 	}
 
 	computeShape() {
+		let dim = this.dim;
+
 		let cx = this.x + this.width/2;
 		let cy = this.y + this.height/2;
-		let sumData = sum(this.data);
-		let maxData = max(this.data);
-
+		let innerRadius = 0;
 		let radius = min([this.width, this.height])/2;
-		let lastRadian = 0;
-		let color = this.color;
+		let lastRadian = 3/2*Math.PI;
 
-		return this.data.map(function (item, index, array) {
-			let radian = 2*Math.PI*item/sumData;
-			let r = radius;
+		let thetaData = unique(getCol(this.data, dim.theta));
+		let colorData = dim.color ? unique(getCol(this.data, dim.color)) : null;
+		let data = null;
+		if(this.type === 'polar') {
+			/* theta r color */
+			if(dim.color && dim.color !== dim.theta)
+				data = group(this.data, dim.r, dim.theta, dim.color);
+			else
+				data = group(this.data, dim.r, dim.theta).map((group) => group.slice(0, 1));
+		}
+		else {
+			data = group(this.data, dim.theta, dim.color).map((group) => group.slice(0, 1));
+		}
 
+		let sumData = sum(data.reduce((pre, cur) => pre.concat(cur), []));
+		let { minTick, maxTick } = this.computeTick([0].concat(data.map(group => sum(group))));
+
+		let shapeArray = [];
+
+		data.forEach((group, groupIndex, array) => {
+
+			let radian = 0;
+			let r = 0;
 			if(this.type === 'polar') {
 				radian = 2*Math.PI/array.length;
-				r = radius*(item/maxData);
+			}
+			else {
+				innerRadius = this.type === 'doughnut' ? (0.5*radius) : 0;
+				r = radius;
 			}
 
-			return new Sector({
-				x: cx,
-				y: cy,
-				innerRadius: 0,
-				outerRadius: r,
-				startRadian: lastRadian,
-				endRadian: lastRadian += radian,
-				renderType: 'fillstroke',
-				style: {
-					fillStyle: color[index],
-					strokeStyle: '#ffffff',
-					lineWidth: 4
-				},
-				zIndex: 0,
-				isAnimation: true
-			});
+			let lastR = 0;
+			group.forEach((item, index, array) => {
+
+				let color = null;
+				if(this.type === 'polar') {
+
+					innerRadius = lastR;
+					r = lastR + radius*(item - minTick)/(maxTick - minTick);
+					color = this.color[index];
+				}
+				else {
+					color = this.color[groupIndex];
+					radian = 2*Math.PI*item/sumData;
+				}
+					
+				let sector = new Sector({
+					x: cx,
+					y: cy,
+					innerRadius: innerRadius,
+					outerRadius: r,
+					startRadian: lastRadian,
+					endRadian: lastRadian + radian,
+					renderType: 'fillstroke',
+					style: {
+						fillStyle: color,
+						strokeStyle: '#ffffff',
+						lineWidth: 2
+					},
+					zIndex: 0,
+					isAnimation: true
+				});
+
+				let obj = {};
+
+				if(this.type === 'polar') {
+					obj = {
+						[dim.theta]: thetaData[groupIndex],
+						[dim.r]: data[groupIndex][index]
+					};
+					if(colorData)
+						obj[dim.color] = colorData[index]
+				}
+				else {
+					obj = {
+						[dim.color]: colorData[groupIndex],
+						[dim.theta]: data[groupIndex][index]			
+					};			
+				}
+
+				this.on(sector, obj);
+
+				lastR = r;
+
+				shapeArray.push(sector);		
+			}, this);
+
+			lastRadian = lastRadian + radian;
 		}, this);
+
+		return shapeArray;
 	}
 }
 

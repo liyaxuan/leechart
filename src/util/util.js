@@ -154,14 +154,14 @@ function getCol(data, col) {
 		return [];
 }
 
-function getDimData(data, dim1, resultDim, dim2) {
+function group(data, resultDim, dim1, dim2) {
 	let dim1Array = unique(getCol(data, dim1));
 	let dim2Array = dim2 ? unique(getCol(data, dim2)) : [];
 
 	let result = [];
 
-	data.forEach(item => {
-		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);
+	data.forEach((item) => {
+		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);		
 		result[i] = result[i] || [];
 		if(dim2) {
 			let j = dim2Array.findIndex(dim2Item => dim2Item === item[dim2]);
@@ -169,9 +169,9 @@ function getDimData(data, dim1, resultDim, dim2) {
 		}
 		else
 			result[i].push(item[resultDim]);
-	}, this);
+	});
 
 	return result;	
 }
 
-export { max, min, sum, range, nice, linearTick, getTextBoundingRect, unique, uuid, getCol, getDimData };
+export { max, min, sum, range, nice, linearTick, getTextBoundingRect, unique, uuid, getCol, group };

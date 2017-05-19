@@ -93,19 +93,20 @@ class Text extends Shape {
 	}
 
 	render(context) {
+		context.save();
 		for(let attr in this.style)
 			context[attr] = this.style[attr];
 
 		if(this.rotate !== 0) {
-			context.save();
 			context.translate(this.x, this.y);
 			context.rotate(this.rotate);
-			context.fillText(this.value, 0, 0);
-			context.restore();			
+			context.fillText(this.value, 0, 0);		
 		}
 		else {
+
 			context.fillText(this.value, this.x, this.y);
 		}
+		context.restore();	
 	}
 }
 

@@ -191,7 +191,7 @@ class Shape {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return unique; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return uuid; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return getCol; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return getDimData; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return group; });
 function max(array) {
 	return Math.max.apply({}, array);
 }
@@ -348,14 +348,14 @@ function getCol(data, col) {
 		return [];
 }
 
-function getDimData(data, dim1, resultDim, dim2) {
+function group(data, resultDim, dim1, dim2) {
 	let dim1Array = unique(getCol(data, dim1));
 	let dim2Array = dim2 ? unique(getCol(data, dim2)) : [];
 
 	let result = [];
 
-	data.forEach(item => {
-		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);
+	data.forEach((item) => {
+		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);		
 		result[i] = result[i] || [];
 		if(dim2) {
 			let j = dim2Array.findIndex(dim2Item => dim2Item === item[dim2]);
@@ -363,7 +363,7 @@ function getDimData(data, dim1, resultDim, dim2) {
 		}
 		else
 			result[i].push(item[resultDim]);
-	}, this);
+	});
 
 	return result;	
 }
@@ -511,9 +511,9 @@ function getDimData(data, dim1, resultDim, dim2) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_shape_text__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_shape_text__ = __webpack_require__(5);
 
 
 
@@ -606,6 +606,56 @@ leeRender.render();
 /***/ }),
 
 /***/ 3:
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Rect; });
+
+
+
+class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ x, y, width, height, style, renderType, groupId, zIndex, isAnimation }) {
+		super({
+			type: 'rect',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex,
+			isAnimation: isAnimation
+		});
+
+		this.x = x;
+		this.originalY = y;
+		this.y = y;
+		this.width = width;
+		this.originalHeight = height;
+		this.height = height;
+	}
+
+	buildPath(context) {
+		context.beginPath();
+		context.rect(this.x, this.y, this.width, this.height);		
+	}
+
+	animate(currentTime, duration) {
+		let currentHeight = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalHeight, duration);
+		this.height = Math.min(currentHeight, this.originalHeight);
+		this.y = this.originalY + this.originalHeight - this.height;
+	}
+
+	isPointIn(context, x, y) {
+		this.buildPath(context);
+		return context.isPointInPath(x, y);
+	}
+}
+
+
+
+/***/ }),
+
+/***/ 4:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -708,8 +758,9 @@ class LeeRender {
 
 	removeShape(shape) {
 		this._removeItem(this.shapeLayer[shape.zIndex], shape);
-		if(shape.groupId && this.shapeGroup[shape.groupId])
+		if(shape.groupId && this.shapeGroup[shape.groupId]) {
 			this._removeItem(this.shapeGroup[shape.groupId], shape);
+		}
 	}
 
 	getContext() {
@@ -736,7 +787,7 @@ class LeeRender {
 
 /***/ }),
 
-/***/ 4:
+/***/ 5:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -838,69 +889,20 @@ class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
 	}
 
 	render(context) {
+		context.save();
 		for(let attr in this.style)
 			context[attr] = this.style[attr];
 
 		if(this.rotate !== 0) {
-			context.save();
 			context.translate(this.x, this.y);
 			context.rotate(this.rotate);
-			context.fillText(this.value, 0, 0);
-			context.restore();			
+			context.fillText(this.value, 0, 0);		
 		}
 		else {
+
 			context.fillText(this.value, this.x, this.y);
 		}
-	}
-}
-
-
-
-/***/ }),
-
-/***/ 5:
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Rect; });
-
-
-
-class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
-	constructor({ x, y, width, height, style, renderType, groupId, zIndex, isAnimation }) {
-		super({
-			type: 'rect',
-			style: style,
-			renderType: renderType,
-			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
-		});
-
-		this.x = x;
-		this.originalY = y;
-		this.y = y;
-		this.width = width;
-		this.originalHeight = height;
-		this.height = height;
-	}
-
-	buildPath(context) {
-		context.beginPath();
-		context.rect(this.x, this.y, this.width, this.height);		
-	}
-
-	animate(currentTime, duration) {
-		let currentHeight = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalHeight, duration);
-		this.height = Math.min(currentHeight, this.originalHeight);
-		this.y = this.originalY + this.originalHeight - this.height;
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
+		context.restore();	
 	}
 }
 

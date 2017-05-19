@@ -189,7 +189,7 @@ class Shape {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return unique; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return uuid; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return getCol; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return getDimData; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return group; });
 function max(array) {
 	return Math.max.apply({}, array);
 }
@@ -346,14 +346,14 @@ function getCol(data, col) {
 		return [];
 }
 
-function getDimData(data, dim1, resultDim, dim2) {
+function group(data, resultDim, dim1, dim2) {
 	let dim1Array = unique(getCol(data, dim1));
 	let dim2Array = dim2 ? unique(getCol(data, dim2)) : [];
 
 	let result = [];
 
-	data.forEach(item => {
-		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);
+	data.forEach((item) => {
+		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);		
 		result[i] = result[i] || [];
 		if(dim2) {
 			let j = dim2Array.findIndex(dim2Item => dim2Item === item[dim2]);
@@ -361,7 +361,7 @@ function getDimData(data, dim1, resultDim, dim2) {
 		}
 		else
 			result[i].push(item[resultDim]);
-	}, this);
+	});
 
 	return result;	
 }
@@ -506,6 +506,55 @@ function getDimData(data, dim1, resultDim, dim2) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Rect; });
+
+
+
+class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ x, y, width, height, style, renderType, groupId, zIndex, isAnimation }) {
+		super({
+			type: 'rect',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex,
+			isAnimation: isAnimation
+		});
+
+		this.x = x;
+		this.originalY = y;
+		this.y = y;
+		this.width = width;
+		this.originalHeight = height;
+		this.height = height;
+	}
+
+	buildPath(context) {
+		context.beginPath();
+		context.rect(this.x, this.y, this.width, this.height);		
+	}
+
+	animate(currentTime, duration) {
+		let currentHeight = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalHeight, duration);
+		this.height = Math.min(currentHeight, this.originalHeight);
+		this.y = this.originalY + this.originalHeight - this.height;
+	}
+
+	isPointIn(context, x, y) {
+		this.buildPath(context);
+		return context.isPointInPath(x, y);
+	}
+}
+
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_shape__ = __webpack_require__(0);
 
 
@@ -605,8 +654,9 @@ class LeeRender {
 
 	removeShape(shape) {
 		this._removeItem(this.shapeLayer[shape.zIndex], shape);
-		if(shape.groupId && this.shapeGroup[shape.groupId])
+		if(shape.groupId && this.shapeGroup[shape.groupId]) {
 			this._removeItem(this.shapeGroup[shape.groupId], shape);
+		}
 	}
 
 	getContext() {
@@ -632,7 +682,7 @@ class LeeRender {
 
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -734,27 +784,61 @@ class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
 	}
 
 	render(context) {
+		context.save();
 		for(let attr in this.style)
 			context[attr] = this.style[attr];
 
 		if(this.rotate !== 0) {
-			context.save();
 			context.translate(this.x, this.y);
 			context.rotate(this.rotate);
-			context.fillText(this.value, 0, 0);
-			context.restore();			
+			context.fillText(this.value, 0, 0);		
 		}
 		else {
+
 			context.fillText(this.value, this.x, this.y);
 		}
+		context.restore();	
 	}
 }
 
 
 
 /***/ }),
-/* 5 */,
 /* 6 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony default export */ __webpack_exports__["a"] = ({
+	color: [
+	    '#2ec7c9','#b6a2de','#5ab1ef','#ffb980','#d87a80',
+	    '#8d98b3','#e5cf0d','#97b552','#95706d','#dc69aa',
+	    '#07a2a4','#9a7fd1','#588dd5','#f5994e','#c05050',
+	    '#59678c','#c9ab00','#7eb00a','#6f5553','#c14089'
+	],
+	axis: {
+		tick: {
+			length: 8,
+			margin: 4,
+			color: '008acd'
+		},
+		label: {
+			color: '#008acd'
+		},
+		grid: {
+			color: '#eeeeee'
+		}
+	},
+	legend: {
+		shape: 'rect',
+		width: 12,
+		/* shape: 'circle'
+		r: 6 */
+		margin: 4
+	}
+});
+
+/***/ }),
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -800,22 +884,31 @@ class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_circle__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_text__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__theme_macaron__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_rect__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_circle__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__theme_macaron__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__util_util__ = __webpack_require__(1);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Legend; });
 
 
 
 
 
+
+let r = 6;	
+let margin = 6;
+let padding = 12;
+let fontSize = 12;
+
 class Legend {
-	constructor({ data, x, y, width, height, position = 'top', render }) {
+	/* 水平方向 left center right */
+	/* 竖直方向 top middle bottom */
+	constructor({ data, x = 0, y = 0, width, height, position = 'top', align = 'center', render }) {
 		this.data = data;
 		this.x = x;
 		this.y = y;
@@ -825,81 +918,73 @@ class Legend {
 		this.position = position;
 
 		this.render = render;
-
-		this.update();
 	}
 
 	color(color) {
 		this.color = color;
 	}
 
-	update() {
-		this.fit();
-		this.shapeArray = this.computeShape();
+	computeLength() {
+		let context = this.render.getContext();
+		return this.data.map((category, index, array) => 2*r + margin + context.measureText(category).width);
+	}
+
+	computeRow() {
+		let lengthArray = this.computeLength();
+		let rowIndex = 0;
+		let xOffset = 0;
+
+		let rowArray = []
+
+		lengthArray.map((length) => {
+			if((xOffset + length) > this.width) {
+				/* 放不下, 另起一行 */
+				xOffset = 0;
+				rowIndex++;	
+			}
+
+			rowArray.push({
+				rowIndex: rowIndex,
+				xOffset: xOffset
+			});
+
+			xOffset += (length + margin);
+		}, this);
+
+		return rowArray;
 	}
 
 	fit() {
-		let context = this.render.getContext();
-		
-		let r = 6;	
-		let margin = 6;
-		let fontSize = 12;
-		let lengthArray = this.data.map((category, index, array) => 2*r + margin + context.measureText(category).width);
-
-		if(this.postion === 'top' || this.position === 'bottom') {
-			let lineIndex = 0;
-			let x = 0;
-			lengthArray.forEach((length) => {
-				if((x + length) > this.width) {
-					/* 放不下, 另起一行 */
-					x = 0;
-					lineIndex++;	
-				}
-			}, this);
-
-			let totalHeight = lineIndex*(margin + fontSize) + fontSize;
-			this.height = Math.max(this.height, totalHeight);
+		if(this.position === 'top' || this.position === 'bottom') {
+			let rowArray = this.computeRow();
+			let rowCount = rowArray.slice(-1)[0].rowIndex + 1;
+			let boundingHeight = (rowCount - 1)*(margin + fontSize) + fontSize;
+			this.height = Math.max(this.height, boundingHeight + 2*padding);
 		}
 		/* 左右方向排列的图例 */
 		else if (this.position === 'left' || this.position === 'right') {
-			let maxLegendWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__util_util__["a" /* max */])(lengthArray);
-			this.width = Math.max(this.width, maxLegendWidth);
-		}		
-	}
-
-	getWidth() {
-		return this.width;
-	}
-
-	getHeight() {
-		return this.height;
+			let lengthArray = this.computeLength();
+			let maxLegendWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__util_util__["a" /* max */])(lengthArray);
+			this.width = Math.max(this.width, maxLegendWidth + 2*padding);
+		}
 	}
 
 	computeShape() {
-		let context = this.render.getContext();
-
-		let r = 6;	
-		let margin = 6;
-		let fontSize = 12;
-		let lengthArray = this.data.map((item, index, array) => 2*r + margin + context.measureText(item).width);	
-
+		let lengthArray = this.computeLength();
 		let shapeArray = [];
 
 		if(this.position === 'top' || this.position === 'bottom') {
-			let lineIndex = 0;
-			let x = 0;
+			let rowArray = this.computeRow();
+			let rowCount = rowArray.slice(-1)[0].rowIndex + 1;
 
-			lengthArray.forEach(function (length, index) {
-				if((x + length) > this.width) {
-					/* 放不下, 另起一行 */
-					x = 0;
-					lineIndex++;	
-				}
+			let boundingWidth = rowArray.reduce((pre, cur, curIndex) => Math.max(cur.xOffset + lengthArray[curIndex], pre), 0);
+			let boundingHeight = (rowCount - 1)*(fontSize + margin) + fontSize;
 
-				let y = this.y + fontSize/2 + lineIndex*(fontSize + margin);
-
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_0__shape_circle__["a" /* Circle */]({
-					x: this.x + x + r,
+			rowArray.forEach(function (item, index) {
+				let y = this.y + this.height/2 - boundingHeight/2 + fontSize/2 +  item.rowIndex*(fontSize + margin);
+				
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_circle__["a" /* Circle */]({
+					x: this.x + this.width/2 - boundingWidth/2 + item.xOffset + r,
 					y: y,
 					r: r,
 					style: {
@@ -908,8 +993,8 @@ class Legend {
 					renderType: 'fill'
 				}));
 
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_text__["a" /* Text */]({
-					x: this.x + x + 2*r + margin,
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_2__shape_text__["a" /* Text */]({
+					x: this.x + this.width/2 - boundingWidth/2 + item.xOffset + 2*r + margin,
 					y: y,
 					value: this.data[index],
 					style: {
@@ -917,16 +1002,14 @@ class Legend {
 						textAlign: 'left'
 					}	
 				}));
-
-				x += (length + margin);
-			}, this);			
+			}, this);		
 		}
 
 		else if(this.position === 'left' || this.position === 'right') {
 			lengthArray.forEach(function (length, index) {
 				let y = this.y + fontSize/2 + index*(fontSize + margin);
 
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_0__shape_circle__["a" /* Circle */]({
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_circle__["a" /* Circle */]({
 					x: this.x + r,
 					y: y,
 					r: r,
@@ -936,7 +1019,7 @@ class Legend {
 					renderType: 'fill'
 				}));
 
-				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_text__["a" /* Text */]({
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_2__shape_text__["a" /* Text */]({
 					x: this.x + 2*r + margin,
 					y: y,
 					value: this.data[index],
@@ -951,47 +1034,24 @@ class Legend {
 		return shapeArray;
 	}
 
+	getWidth() {
+		this.fit();
+		return this.width;
+	}
+
+	getHeight() {
+		this.fit();
+		return this.height;
+	}
+
 	getShape() {
-		this.update();
+		this.fit();
+		this.shapeArray = this.computeShape();
 		return this.shapeArray;
 	}
 }
 
 
-
-/***/ }),
-/* 8 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony default export */ __webpack_exports__["a"] = ({
-	color: [
-	    '#2ec7c9','#b6a2de','#5ab1ef','#ffb980','#d87a80',
-	    '#8d98b3','#e5cf0d','#97b552','#95706d','#dc69aa',
-	    '#07a2a4','#9a7fd1','#588dd5','#f5994e','#c05050',
-	    '#59678c','#c9ab00','#7eb00a','#6f5553','#c14089'
-	],
-	axis: {
-		tick: {
-			length: 8,
-			margin: 4,
-			color: '008acd'
-		},
-		label: {
-			color: '#008acd'
-		},
-		grid: {
-			color: '#eeeeee'
-		}
-	},
-	legend: {
-		shape: 'rect',
-		width: 12,
-		/* shape: 'circle'
-		r: 6 */
-		margin: 4
-	}
-});
 
 /***/ }),
 /* 9 */
@@ -1087,7 +1147,9 @@ class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 				    	let _y = pp.y + (dy)/num*i;
 
 				        context[i%2 == 0 ? 'moveTo' : 'lineTo'](_x, _y);  
-				    }  
+				    } 
+
+				    context.lineTo(x, y);
 				}
 				/* 实线 */
 				else {
@@ -1113,64 +1175,84 @@ class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(5);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return LinearAxis; });
 
 
 
 
 class LinearAxis {
-	constructor({ data, x, y, width, length, bodyHeight, bodyWidth, position = 'left', isSpace = false, isGrid = true, context }) {
+	constructor({ data, type = 'linear', chartType, x = 0, y = 0, width, height, bodyHeight, bodyWidth, position = 'left', space = 0, isZero = true, isGrid = true, render }) {
 		this.data = data;
 		/* 数据相关的 */
-		if(typeof this.data[0] === 'number') {
-			this.dataType = 'linear';
-		}
-		else if(typeof this.data[0] === 'string') {
-			this.dataType = 'category';
-		}
 
+		this.type = type;
+		this.chartType = chartType;
 		/* 位置相关 */
 		this.x = x;
 		this.y = y;
 		this.width = width;
-		this.length = length;
+		this.height = height;
 		this.position = position;
-		this.isSpace = isSpace;
+		this.space = space;
 		this.isGrid = isGrid;
+		this.isZero = isZero;
 
 		this.bodyWidth = bodyWidth;
 		this.bodyHeight = bodyHeight;
 	
-		this.context = context;
+		this.render = render;
 
 		this.update();
 	}
 
 	update() {
 		this.tickArray = this.computeTick();
+
 		this.fit();
 		this.shapeArray = this.computeShape();		
 	}
 
 	/* 有 data 就可以计算 tick, 不受文本 rotate 的影响 */
 	computeTick() {
+
 		let tickArray = [];
 
-		if(this.dataType === 'linear') {
+		if(this.type === 'linear') {
 			tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* linearTick */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(this.data), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(this.data));
+
+			if(this.isZero && tickArray[0] > 0)
+				tickArray.unshift(0);
 		}
-		else if(this.dataType === 'category') {
+		else if(this.type === 'category') {
 			tickArray = this.data.slice(0);
 		}
+
+		let length = 0;
+		if(/top|bottom/.test(this.position))
+			length = this.width;
+		else if(/left|right/.test(this.position))
+			length = this.height;
 
 		return tickArray.map((tick, index, array) => {
 			let position = 0;
 
-			if(this.isSpace)
-				position = (index + 1)*this.length/(array.length + 1);
-			else
-				position = index*this.length/(array.length - 1);
+			if(this.type === 'category') {
+				if(this.chartType === 'bar') {
+					let intervalWidth = (length - 2*this.space)/array.length;
+
+					position = this.space + intervalWidth/2 + index*intervalWidth;							
+				}
+				else {
+					let intervalWidth = (length - 2*this.space)/(array.length - 1);
+					position = this.space + index*intervalWidth;
+				}
+			}
+
+			else if(this.type === 'linear') {
+				let intervalWidth = (length - 2*this.space)/(array.length - 1);
+				position = this.space + index*intervalWidth
+			}
 
 			return {
 				value: tick,
@@ -1181,27 +1263,27 @@ class LinearAxis {
 
 	/* 计算 label 的旋转 */
 	fit() {
-		let context = this.context;
+		let context = this.render.getContext();
 
 		let limitedLabelWidth = 0;
 		let maxLabelWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(this.tickArray.map(tick => context.measureText(tick.value).width ));
 
 		
-		/* 水平坐标轴的限制在于长度 */
-		if(this.position === 'top' || this.position === 'bottom') {
+		/* 水平坐标轴的限制在于宽度 */
+		if(/top|bottom/.test(this.position)) {
 			let rotate = 0;
 			
 			let textAlign = 'center';
 			let textBaseline = 'top';
 
-			/* 先计算 rotate */
-			let leftLength = this.length;
+			/* 先处理宽度, 计算 rotate */
+			let leftWidth = this.width;
 			if(this.isSpace) {
 				/* 剔除了两端的距离, 将剩下的部分平分 */
-				leftLength = this.length - this.length/(this.tickArray.length + 1)
+				leftWidth = this.width - this.width/(this.tickArray.length + 1)
 			}
 			/* 设刻度之间的最小距离为4 */
-			limitedLabelWidth = (leftLength - 4*(this.tickArray.length - 1))/this.tickArray.length;
+			limitedLabelWidth = (leftWidth - 4*(this.tickArray.length - 1))/this.tickArray.length;
 
 			if(maxLabelWidth > limitedLabelWidth) {
 				rotate = Math.acos(limitedLabelWidth/maxLabelWidth);
@@ -1209,8 +1291,8 @@ class LinearAxis {
 			}
 			this.rotate = rotate;
 
-			/* 接下来处理宽度 */
-			let width = this.tickArray.reduce(function (pre, cur) {
+			/* 接下来处理高度, 根据需要进行拓高 */
+			let height = this.tickArray.reduce(function (pre, cur) {
 				/* 每个在 rotate 角度下旋转的文本 */
 				let { height } = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["i" /* getTextBoundingRect */])({
 					context: context,
@@ -1223,22 +1305,14 @@ class LinearAxis {
 
 				return Math.max(pre, height);
 			}, 0);
-			let preWidth = this.width;
-			this.width = Math.max(preWidth, width + 12);
-			if(this.position === 'bottom')
-				this.y -= (this.width - preWidth);
-
-			this.bodyHeight -= (this.width - preWidth);
+			let preHeight = this.height;
+			this.height = Math.max(preHeight, height + 12);
 		}
 		/* 竖直坐标轴的限制在于宽度, 不旋转直接拓宽 */
-		else if(this.position === 'left' || this.position === 'right') {
+		else if(/left|right/.test(this.position)) {
 			this.rotate = 0;
 			let preWidth = this.width;
 			this.width = Math.max(this.width, maxLabelWidth + 12);
-			if(this.position === 'right')
-				this.x -= (this.width - preWidth);
-
-			this.bodyWidth -= (this.width - preWidth);
 		}
 	}
 
@@ -1250,11 +1324,11 @@ class LinearAxis {
 
 		let shapeArray = [];
 		/* 水平坐标轴 */
-		if(this.position === 'top' || this.position === 'bottom') {
+		if(/top|bottom/.test(this.position)) {
 			/* 轴线 */
 
 			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_line__["a" /* Line */]({
-				pointArray: [{ x: this.x, y: this.y }, { x: this.x + this.length, y: this.y }],
+				pointArray: [{ x: this.x, y: this.y }, { x: this.x + this.width, y: this.y }],
 				style: lineStyle,
 				zIndex: 1
 			}));
@@ -1282,8 +1356,15 @@ class LinearAxis {
 			}, this);
 
 			/* 网格 */
-			if(this.isGrid)
-				this.tickArray.forEach((tick) => {
+			if(this.isGrid) {
+				let gridArray = this.tickArray;
+				if(this.space !== 0)
+					gridArray = gridArray.concat({
+						value: '',
+						position: this.width
+					});
+
+				gridArray .forEach((tick) => {
 					let x = this.x + tick.position;
 					let y = this.y;
 
@@ -1292,19 +1373,20 @@ class LinearAxis {
 						style: lineStyle,
 						isDashed: true
 					}));
-				}, this);
+				}, this);				
+			}
 		}
 		/* 竖直坐标轴 */
-		else if(this.position === 'left' || this.position === 'right') {
+		else if(/left|right/.test(this.position)) {
 			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_line__["a" /* Line */]({
-				pointArray: [{ x: this.x + this.width, y: this.y }, { x: this.x + this.width, y: this.y + this.length }],
+				pointArray: [{ x: this.x + this.width, y: this.y }, { x: this.x + this.width, y: this.y + this.height }],
 				style: lineStyle,
 				zIndex: 1
 			}));
 
 			this.tickArray.forEach((tick, index) => {
 				let x = this.x + this.width;
-				let y = this.y + this.length - tick.position;
+				let y = this.y + this.height - tick.position;
 
 				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_line__["a" /* Line */]({
 					pointArray: [{ x: x, y: y }, { x: x - 8, y: y }],
@@ -1313,7 +1395,7 @@ class LinearAxis {
 
 				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_2__shape_text__["a" /* Text */]({
 					x: this.x + this.width - 12,
-					y: this.y + this.length - tick.position,
+					y: this.y + this.height - tick.position,
 					value: tick.value,
 					style: {
 						textBaseline: 'middle',
@@ -1324,9 +1406,16 @@ class LinearAxis {
 			}, this);
 
 			if(this.isGrid) {
-				this.tickArray.forEach((tick) => {
+				let gridArray = this.tickArray;
+				if(this.space !== 0)
+					gridArray = gridArray.concat({
+						value: '',
+						position: this.height
+					});
+
+				gridArray.forEach((tick) => {
 					let x = this.x + this.width;
-					let y = this.y + this.length - tick.position;
+					let y = this.y + this.height - tick.position;
 
 					shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_line__["a" /* Line */]({
 						pointArray: [{ x: x, y: y }, { x: x + this.bodyWidth, y: y }],
@@ -1341,7 +1430,13 @@ class LinearAxis {
 	}
 
 	getWidth() {
+		this.fit();
 		return this.width;
+	}
+
+	getHeight() {
+		this.fit();
+		return this.height;
 	}
 
 	getShape() {
@@ -1367,9 +1462,10 @@ class LinearAxis {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_axis_linear__ = __webpack_require__(11);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_legend_legend__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_axis_polar__ = __webpack_require__(26);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__src_legend_legend__ = __webpack_require__(8);
 
 
 
@@ -1386,37 +1482,149 @@ let data = ['first class', 'second class', 'third class', 'forth class', 'fifth 
 let leeRender = new __WEBPACK_IMPORTED_MODULE_0__src_leerender__["a" /* LeeRender */](document.querySelector('#leerender'));
 let context = leeRender.getContext();
 
-let xAxis = new __WEBPACK_IMPORTED_MODULE_1__src_axis_linear__["a" /* LinearAxis */]({
-	data: data.map((item) => item.color),
+// let xAxis = new LinearAxis({
+// 	data: data.map((item) => item.color),
+// 	x: 50,
+// 	y: 350,
+// 	width: 50,
+// 	length: 300,
+// 	position: 'bottom',
+// 	isSpace: true
+// });
+
+// let { height } = xAxis.getBoundingRect(context);
+// height = Math.ceil(height);
+
+// let yAxisLength = 350 - Math.max(height, 50);
+
+// xAxis.width = height;
+// xAxis.y = 400 - height- 8;
+
+// let yAxis = new LinearAxis({
+// 	data: data.map((item) => item.value),
+// 	x: 0,
+// 	y: 50,
+// 	width: 50,
+// 	length: yAxisLength,
+// 	position: 'left'
+// });
+
+// leeRender.addShape(xAxis.buildShape(context));
+// leeRender.addShape(yAxis.buildShape(context));
+
+let polarAxis = new __WEBPACK_IMPORTED_MODULE_2__src_axis_polar__["a" /* PolarAxis */]({
+	thetaData: data.map(item => item.color),
+	rData: data.map(item => item.value),
 	x: 50,
-	y: 350,
-	width: 50,
-	length: 300,
-	position: 'bottom',
-	isSpace: true
-});
-
-let { height } = xAxis.getBoundingRect(context);
-height = Math.ceil(height);
-
-let yAxisLength = 350 - Math.max(height, 50);
-
-xAxis.width = height;
-xAxis.y = 400 - height- 8;
-
-let yAxis = new __WEBPACK_IMPORTED_MODULE_1__src_axis_linear__["a" /* LinearAxis */]({
-	data: data.map((item) => item.value),
-	x: 0,
 	y: 50,
-	width: 50,
-	length: yAxisLength,
-	position: 'left'
+	width: 400,
+	height: 400
 });
-
-leeRender.addShape(xAxis.buildShape(context));
-leeRender.addShape(yAxis.buildShape(context));
-
+leeRender.addShape(polarAxis.getShape());
 leeRender.render();
+
+/***/ }),
+/* 22 */,
+/* 23 */,
+/* 24 */,
+/* 25 */,
+/* 26 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_circle__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__shape_text__ = __webpack_require__(5);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return PolarAxis; });
+
+
+
+
+
+class PolarAxis {
+	constructor({ thetaData, rData, x, y, width, height}) {
+		this.thetaData = thetaData;
+		this.rData = rData;
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+		this.r = Math.min(width, height)/2 - 2*12;
+	}
+
+	computeShape() {
+		let cx = this.x + this.width/2;
+		let cy = this.y + this.height/2;
+		let tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* linearTick */])(0, __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(this.rData));
+		let shapeArray = [];
+		this.thetaData.forEach((item, index, array) => {
+			let interval = 2*Math.PI/array.length;
+
+			let radian = 3/2*Math.PI + index*interval;
+
+			let x = cx + this.r*Math.cos(radian);
+			let y = cy + this.r*Math.sin(radian);
+
+			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_line__["a" /* Line */]({
+				pointArray: [{ x: cx, y: cy }, { x: x, y: y }],
+				style: {
+					lineWidth: 1,
+					strokeStyle: '#d9d9d9'					
+				},
+				isDashed: true
+			}));
+
+			radian += interval/2;
+			let textX = cx + (this.r + 12)*Math.cos(radian);
+			let textY = cy + (this.r + 12)*Math.sin(radian);
+
+			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_3__shape_text__["a" /* Text */]({
+				x: textX,
+				y: textY,
+				value: item,
+				rotate: 1/2*Math.PI + radian,
+				style: {
+					textAlign: 'center',
+					textBaseline: 'bottom',	
+					fillStyle: '#222222'	
+				}
+			}));
+		});
+
+		tickArray.forEach((tick, index, array) => {
+			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_2__shape_circle__["a" /* Circle */]({
+				x: cx,
+				y: cy,
+				r: index*this.r/(array.length - 1),
+				renderType: 'stroke',
+				style: {
+					lineWidth: 1,
+					strokeStyle: index === array.length - 1 ? '#d9d9d9' : '#d9d9d9'
+				}
+			}));
+
+			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_3__shape_text__["a" /* Text */]({
+				x: cx ,
+				y: cy - index*this.r/(array.length - 1),
+				value: tick,
+				style: {
+					textAlign: 'center',
+					textBaseline: 'middle'
+				}
+			}));
+		}, this);
+
+		return shapeArray;
+	}
+
+	getShape() {
+		this.shapeArray = this.computeShape();
+		return this.shapeArray;
+	}
+}
+
+
 
 /***/ })
 /******/ ]);

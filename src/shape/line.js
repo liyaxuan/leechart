@@ -83,7 +83,9 @@ class Line extends Shape {
 				    	let _y = pp.y + (dy)/num*i;
 
 				        context[i%2 == 0 ? 'moveTo' : 'lineTo'](_x, _y);  
-				    }  
+				    } 
+
+				    context.lineTo(x, y);
 				}
 				/* 实线 */
 				else {

@@ -1,45 +1,62 @@
 import { linearTick, max, min } from '../util/util';
 import { Circle } from '../shape/circle';
-import { Base } from './base'
+import { Geometry } from './geometry'
 
-class PointChart extends Base {
-	constructor({ data, x, y, width, height, render }) {
+class PointChart extends Geometry {
+	constructor({ data, dim, x, y, width, height, render, space }) {
 		super({
 			data: data,
+			dim: dim,
 			x: x,
 			y: y,
 			width: width,
 			height: height,
-			render: render
+			render: render,
+			space: space
 		});
 	}
 	
 	computeShape() {
-		let color = this.color;
-		let shapeArray = [];
+		let dim = this.dim;
+		let { xData, yData, colorData } = this.computeData();
 
-		let intervalWidth = this.width/(this.data.length - 1);
-		let barWidth = intervalWidth*0.4;
-		let tickArray = linearTick(min(this.data), max(this.data));
-		let minTick = min(tickArray);
-		let maxTick = max(tickArray);
+		let intervalWidth = (this.width - 2*this.space)/(yData.length - 1);
 
-		return this.data.map((item, index) => {
-			let x = this.x + index*intervalWidth;
-			let pointHeight = this.height*(item - minTick)/(maxTick - minTick);
-			let y = this.y + this.height - pointHeight;
+		let { minTick, maxTick } = this.computeTick(yData);
 
-			return new Circle({
-				x: x,
-				y: y,
-				r: 12,
-				renderType: 'fill',
-				style: {
-					fillStyle: color[index]
-				},
-				isAnimation: true
-			});
-		}, this);
+		return yData.map((group, groupIndex) => {
+			return group.map((item, index) => {
+				let x = this.x + this.space + groupIndex*intervalWidth;
+
+				let pointHeight = this.height*(item - minTick)/(maxTick - minTick);
+				let y = this.y + this.height - pointHeight;
+
+				let r = 6 + 18*(item - minTick)/(maxTick - minTick);
+
+				let circle = new Circle({
+					x: x,
+					y: y,
+					r: r,
+					renderType: 'fill',
+					style: {
+						fillStyle: this.color[index],
+						globalAlpha: 0.5
+					},
+					isAnimation: true
+				});
+
+				let obj = {
+					[dim.x]: xData[groupIndex],
+					[dim.y]: yData[groupIndex][index]			
+				};
+				if(colorData)
+					obj[dim.color] = colorData[index];
+
+				this.on(circle, obj);
+
+				return circle;
+			}, this);
+		}, this).reduce((pre, cur) => pre.concat(cur), []);
 	}
 }
 
