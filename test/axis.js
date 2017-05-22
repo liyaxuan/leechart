@@ -1,7 +1,7 @@
 import { LeeRender } from '../src/leerender';
 
 import { LinearAxis } from '../src/axis/linear';
-import { PolarAxis } from '../src/axis/polar'
+import { ThetaAxis } from '../src/axis/theta';
 import { Legend } from '../src/legend/legend';
 
 let data = ['first class', 'second class', 'third class', 'forth class', 'fifth class'].map(function (item) {
@@ -14,43 +14,36 @@ let data = ['first class', 'second class', 'third class', 'forth class', 'fifth 
 let leeRender = new LeeRender(document.querySelector('#leerender'));
 let context = leeRender.getContext();
 
-// let xAxis = new LinearAxis({
-// 	data: data.map((item) => item.color),
+// let polarAxis = new PolarAxis({
+//  type: 'radar'
+// 	thetaData: ['Jan.','Feb.','Mar.','Apr.','May','Jun.','Jul.','Aug.','Sep.','Oct.','Nov.','Dec.'],
+// 	rData: data.map(item => item.value),
 // 	x: 50,
-// 	y: 350,
-// 	width: 50,
-// 	length: 300,
-// 	position: 'bottom',
-// 	isSpace: true
-// });
-
-// let { height } = xAxis.getBoundingRect(context);
-// height = Math.ceil(height);
-
-// let yAxisLength = 350 - Math.max(height, 50);
-
-// xAxis.width = height;
-// xAxis.y = 400 - height- 8;
-
-// let yAxis = new LinearAxis({
-// 	data: data.map((item) => item.value),
-// 	x: 0,
 // 	y: 50,
-// 	width: 50,
-// 	length: yAxisLength,
-// 	position: 'left'
+// 	width: 400,
+// 	height: 400
 // });
 
-// leeRender.addShape(xAxis.buildShape(context));
-// leeRender.addShape(yAxis.buildShape(context));
+// leeRender.addShape(polarAxis.getShape());
 
-let polarAxis = new PolarAxis({
-	thetaData: data.map(item => item.color),
+let thetaAxis = new ThetaAxis({
+	type: 'radar',
+	thetaData: ['Jan.','Feb.','Mar.','Apr.','May','Jun.','Jul.','Aug.','Sep.','Oct.','Nov.','Dec.'],
 	rData: data.map(item => item.value),
 	x: 50,
 	y: 50,
 	width: 400,
 	height: 400
 });
-leeRender.addShape(polarAxis.getShape());
+
+leeRender.addShape(thetaAxis.getShape());
+
+
+
+
+
+
+
+
 leeRender.render();
+

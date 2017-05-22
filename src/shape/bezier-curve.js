@@ -20,8 +20,6 @@ class BezierCurve extends Shape {
 	}
 
 	buildPath(context) {
-		context.beginPath();
-
 		this.pointArray.forEach(({ x, y }, index, array) => {
 			if(index === 0)
 				context.moveTo(x, y);
@@ -31,25 +29,6 @@ class BezierCurve extends Shape {
 				context.bezierCurveTo(midX, preY, midX, y, x, y);
 			}
 		});
-	}
-
-	animate(currentTime, duration) {
-		let yArray = this.originalPointArray.map(({ x, y }) => y);
-		let maxY = max(yArray);
-
-		this.pointArray = this.originalPointArray.map(({ x, y }) => {
-			let dY = Math.abs(maxY - y);
-			let currentY = maxY - animation.easeInCubic(null, currentTime, 0, dY, duration);
-			return {
-				x: x,
-				y: Math.max(y, currentY)
-			};
-		});
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
 	}	
 }
 

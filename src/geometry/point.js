@@ -3,17 +3,10 @@ import { Circle } from '../shape/circle';
 import { Geometry } from './geometry'
 
 class PointChart extends Geometry {
-	constructor({ data, dim, x, y, width, height, render, space }) {
-		super({
-			data: data,
-			dim: dim,
-			x: x,
-			y: y,
-			width: width,
-			height: height,
-			render: render,
-			space: space
-		});
+	constructor({ data, dim, x, y, width, height, render, space, isBeginAtZero = false }) {
+		super({ data, dim, x, y, width, height, render, space });
+
+		this.isBeginAtZero = isBeginAtZero;
 	}
 	
 	computeShape() {
@@ -22,7 +15,7 @@ class PointChart extends Geometry {
 
 		let intervalWidth = (this.width - 2*this.space)/(yData.length - 1);
 
-		let { minTick, maxTick } = this.computeTick(yData);
+		let { minTick, maxTick } = this.computeTick(yData, this.isBeginAtZero);
 
 		return yData.map((group, groupIndex) => {
 			return group.map((item, index) => {
@@ -53,6 +46,8 @@ class PointChart extends Geometry {
 					obj[dim.color] = colorData[index];
 
 				this.on(circle, obj);
+
+				circle.init({ r: 0 }).when(1000, { r: r }).start();
 
 				return circle;
 			}, this);

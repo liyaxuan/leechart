@@ -18,19 +18,8 @@ class Circle extends Shape {
 		this.r = r;
 	}
 
-	animate(currentTime, duration) {
-		let currentR = animation.easeInCubic(null, currentTime, 0, this.originalR, duration);
-		this.r = Math.min(currentR, this.originalR);
-	}
-
 	buildPath(context) {
-		context.beginPath();
 		context.arc(this.x, this.y, this.r, 0, 2*Math.PI);
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
 	}
 }
 

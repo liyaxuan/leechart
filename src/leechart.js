@@ -2,7 +2,8 @@ import { BarChart } from './geometry/bar';
 import { LineChart } from './geometry/line';
 import { PointChart } from './geometry/point';
 import { PieChart } from './geometry/pie';
-import { PolarAxis } from './axis/polar';
+import { RadarChart } from './geometry/radar';
+import { ThetaAxis } from './axis/theta';
 import { LinearAxis } from './axis/linear';
 import { Legend } from './legend/legend';
 import { ToolTip } from './tooltip/tooltip';
@@ -53,12 +54,22 @@ class LeeChart {
 			top: [],
 			bottom: []
 		};
+
+		this.isStacked = false;
 	}
 
 	type(_type) {
 		if(/line|point|bar|pie|doughnut|polar|radar/.test(_type))
 			this._type = _type;
 		return this;
+	}
+
+	stack(isStacked = true) {
+		this.isStacked = isStacked;
+	}
+
+	area(isArea = true) {
+		this.isArea = isArea;
 	}
 
 	data(_data) {
@@ -72,7 +83,7 @@ class LeeChart {
 			this._xCol = col;
 			this._xData = unique(getCol(this._data, col));
 		}
-			
+		
 		return this;
 	}
 
@@ -177,15 +188,16 @@ class LeeChart {
 			else
 				this._chart = new PointChart(config);				
 		}
-		else if(/pie|doughnut|polar/.test(this._type)) {
+		else if(/pie|doughnut|polar|radar/.test(this._type)) {
 			let dim = {
 				theta: this._thetaCol,
 				color: this._colorCol
 			};
 
-			if(/polar/.test(this._type)) {
+			if(/polar|radar/.test(this._type)) {
 				dim.r = this._rCol;
-				this._polarAxis = new PolarAxis({
+				this._thetaAxis = new ThetaAxis({
+					type: this._type,
 					thetaData: unique(getCol(this._data, this._thetaCol)),
 					rData: this._rData.reduce((pre, cur) => pre.concat(cur), []),
 					x: this.padding.left,
@@ -195,7 +207,9 @@ class LeeChart {
 				});
 			}
 
-			this._chart = new PieChart({
+			let T = this._type === 'radar' ? RadarChart : PieChart;
+
+			this._chart = new T({
 				type: this._type,
 				data: this._data,
 				dim: dim,
@@ -276,7 +290,7 @@ class LeeChart {
 		this._chart.width = this.bodyWidth;
 		this._chart.height = this.bodyHeight;
 
-		if(this._type === 'polar') {
+		if(this._type === 'polar' || this._type === 'radar') {
 			this._chart.x = this.padding.left + 24;
 			this._chart.y = this.padding.top + 24;
 			this._chart.width = this.bodyWidth - 48;
@@ -331,8 +345,8 @@ class LeeChart {
 			this.backRender.addShape(this._xAxis.getShape());
 			this.backRender.addShape(this._yAxis.getShape());
 		}
-		else if(/polar/.test(this._type))
-			this.backRender.addShape(this._polarAxis.getShape());
+		else if(/polar|radar/.test(this._type))
+			this.backRender.addShape(this._thetaAxis.getShape());
 		this.bodyRender.addShape(this._chart.getShape());
 		this.frontRender.addShape(this._legend.getShape());
 

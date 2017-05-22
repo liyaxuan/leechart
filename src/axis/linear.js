@@ -3,7 +3,7 @@ import { Line } from '../shape/line';
 import { Text } from '../shape/text';
 
 class LinearAxis {
-	constructor({ data, type = 'linear', chartType, x = 0, y = 0, width, height, bodyHeight, bodyWidth, position = 'left', space = 0, isZero = true, isGrid = true, render }) {
+	constructor({ data, type = 'linear', chartType, x = 0, y = 0, width, height, bodyHeight, bodyWidth, position = 'left', space = 0, isBeginAtZero = false, isGrid = true, render }) {
 		this.data = data;
 		/* 数据相关的 */
 
@@ -17,7 +17,7 @@ class LinearAxis {
 		this.position = position;
 		this.space = space;
 		this.isGrid = isGrid;
-		this.isZero = isZero;
+		this.isBeginAtZero = isBeginAtZero;
 
 		this.bodyWidth = bodyWidth;
 		this.bodyHeight = bodyHeight;
@@ -88,7 +88,6 @@ class LinearAxis {
 
 		let limitedLabelWidth = 0;
 		let maxLabelWidth = max(this.tickArray.map(tick => context.measureText(tick.value).width ));
-
 		
 		/* 水平坐标轴的限制在于宽度 */
 		if(/top|bottom/.test(this.position)) {

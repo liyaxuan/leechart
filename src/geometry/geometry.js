@@ -40,10 +40,11 @@ class Geometry {
 		return { xData, yData, colorData }	
 	}
 
-	computeTick(yData) {
-		let data = yData.reduce((pre, cur) => pre.concat(cur), []);
-
-		let tickArray = linearTick(min(data), max(data));
+	computeTick(data, isBeginAtZero = false) {
+		let _data = data.reduce((pre, cur) => pre.concat(cur), []);
+		let maxData = max(_data);
+		let minData = isBeginAtZero ? Math.min(min(_data), 0) : min(_data);
+		let tickArray = linearTick(minData, maxData);
 		let minTick = min(tickArray);
 		let maxTick = max(tickArray);
 
@@ -71,8 +72,7 @@ class Geometry {
 	}
 
 	getShape() {
-		this.shapeArray = this.computeShape();
-		return this.shapeArray
+		return this.computeShape();
 	}
 }
 

@@ -35,3 +35,6 @@ doughnutChart.type('doughnut').data(data).color('name').theta('rainfall').render
 
 let polarChart = new LeeChart(document.querySelector('#polar'));
 polarChart.type('polar').data(data).color('name').theta('month').r('rainfall').render();
+
+let radarChart = new LeeChart(document.querySelector('#radar'));
+radarChart.type('radar').data(data).color('name').theta('month').r('rainfall').render();

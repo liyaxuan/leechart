@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 24);
+/******/ 	return __webpack_require__(__webpack_require__.s = 28);
 /******/ })
 /************************************************************************/
 /******/ ({
@@ -72,7 +72,10 @@
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_easing__ = __webpack_require__(2);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Shape; });
+
+
 class Shape {
 	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false, isDisplay = true }) {
 		this.type = type;
@@ -89,14 +92,15 @@ class Shape {
 		this.onmouseout = [];
 		
 		this.isDisplay = true;
+
 		this.isAnimation = isAnimation;
+		this.animationArray = [];
 
 		this._render = null;
 	}
 
 	setRender(render) {
 		this._render = render;
-		this.startAnimation();
 	}
 
 	show() {
@@ -113,21 +117,104 @@ class Shape {
 		}
 	}
 
-	startAnimation() {
-		if(!this.isAnimation || !this.animate)
+	init(config) {
+		for(let attr in config) {
+			this[attr] = config[attr];
+		}
+		return this;	
+	}
+
+	when(duration, config, callback = function () {}) {
+		this.animationArray.push({ duration, config, callback });
+		return this;
+	}
+
+	run(index) {
+		function toEnd(current, begin, end) {
+			return end > begin ? Math.min(current, end) : Math.max(current, end);	
+		}
+
+		/* 队列为空 */
+		let length = this.animationArray.length;
+		if(length === 0)
 			return;
+		/* i 是动画队列的索引 */
+		let i = index;
+		/* 如果已经遍历过一遍队列了, 但是是循环的 */
+		if(index > length - 1 && this.isCycle)
+			i = i%length;
+		/* 如果已经遍历过一遍队列了, 但不是循环的 */
+		else if(index > length - 1 && !this.isCycle) {
+
+			return;
+		}
+			
+		/* 取出任务执行 */
+		let { duration, config } = this.animationArray[i];
+		
+		let attrArray = [];
+		for(let attr in config) {
+			let begin = this[attr];
+			let end = config[attr];
+			attrArray.push({ attr, begin, end });
+		}
 
 		let currentTime = 0;
-		let duration = 1000;
+		let func = __WEBPACK_IMPORTED_MODULE_0__util_easing__["a" /* default */].easeInOutQuad;
 		let timer = setInterval((function () {
-			if(currentTime >= duration)
-				clearInterval(timer);
+			if(currentTime > duration) {
+				clearInterval(timer);		
+				attrArray.forEach(({ attr, begin, end }) => {
+					if(Array.isArray(begin) && Array.isArray(end)) {
+						this[attr] = end.map(({ x, y }) => {
+							return { x, y }
+						});
+					}
+					else
+						this[attr] = end;
+				});
 
-			this.animate(currentTime, duration);
+				this.run(index + 1);
+				return;
+			}
+				
+			attrArray.forEach(({ attr, begin, end }) => {
+				if(Array.isArray(begin) && Array.isArray(end)) {
+					let current = begin.map((item, index) => {
+
+						let x = func(null, currentTime, item.x, end[index].x - item.x, duration);
+						let y = func(null, currentTime, item.y, end[index].y - item.y, duration);
+
+						x = toEnd(x, item.x, end[index].x);
+						y = toEnd(y, item.y, end[index].y);
+
+						return { x, y };
+					});
+
+					this[attr] = current;
+				}
+				/* 单值 x y width height r */
+				else {
+					let current = func(null, currentTime, begin, end - begin, duration);
+					this[attr] = toEnd(current, begin, end);					
+				}	
+			}, this);
 
 			this._render.requestRender();
 			currentTime += 1000/60;
-		}).bind(this), 1000/60);
+		}).bind(this), 1000/60);		
+	}
+
+	start(isCycle = false) {
+		this.isCycle = isCycle;
+		this.run(0);
+
+		return this;
+	}
+
+	stop() {
+		this.isCycle = false;
+		return this;
 	}
 
 	addEventListener(eventType, callback) {
@@ -154,11 +241,18 @@ class Shape {
 		}
 	}
 
+	isPointIn(context, x, y) {
+		context.beginPath();
+		this.buildPath(context);
+		return context.isPointInPath(x, y);
+	}
+
 	render(context) {
 		if(!this.isDisplay)
 			return;
 
 		context.save();
+		context.beginPath();
 		for(let attr in this.style)
 			context[attr] = this.style[attr];
 		this.buildPath && this.buildPath(context);
@@ -171,6 +265,202 @@ class Shape {
 			context[this.renderType]();
 		context.restore();
 	}
+}
+
+
+
+/***/ }),
+
+/***/ 1:
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return max; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return min; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return sum; });
+/* unused harmony export range */
+/* unused harmony export nice */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return linearTick; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "i", function() { return getTextBoundingRect; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return unique; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return uuid; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return getCol; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return group; });
+function max(array) {
+	return Math.max.apply({}, array);
+}
+
+function min(array) {
+	return Math.min.apply({}, array);
+}
+
+function sum(array) {
+	return array.reduce((pre, cur) => pre + cur, 0);
+}
+
+function range(array) {
+	return max(array) - min(array);
+}
+
+function almostEquals(x, y, epsilon) {
+	return Math.abs(x - y) < epsilon;
+}
+
+function nice(range, round) {
+	var exponent = Math.floor(Math.log10(range));
+	var fraction = range / Math.pow(10, exponent);
+	var niceFraction;
+
+	if (round) {
+		if (fraction < 1.5) {
+			niceFraction = 1;
+		} else if (fraction < 3) {
+			niceFraction = 2;
+		} else if (fraction < 7) {
+			niceFraction = 5;
+		} else {
+			niceFraction = 10;
+		}
+	} else if (fraction <= 1.0) {
+		niceFraction = 1;
+	} else if (fraction <= 2) {
+		niceFraction = 2;
+	} else if (fraction <= 5) {
+		niceFraction = 5;
+	} else {
+		niceFraction = 10;
+	}
+
+	return niceFraction * Math.pow(10, exponent);
+}
+
+function linearTick(min, max, count = 11) {
+	var ticks = [];
+	// To get a "nice" value for the tick spacing, we will use the appropriately named
+	// "nice number" algorithm. See http://stackoverflow.com/questions/8506881/nice-label-algorithm-for-charts-with-minimum-ticks
+	// for details.
+	var niceRange = nice(max - min, false);
+	var spacing = nice(niceRange / (count - 1), true);
+
+	var niceMin = Math.floor(min / spacing) * spacing;
+	var niceMax = Math.ceil(max / spacing) * spacing;
+
+	var numSpaces = (niceMax - niceMin) / spacing;
+	if (almostEquals(numSpaces, Math.round(numSpaces), spacing / 1000)) {
+		numSpaces = Math.round(numSpaces);
+	} else {
+		numSpaces = Math.ceil(numSpaces);
+	}
+	// Put the values into the ticks array
+
+	ticks.push(niceMin);
+	for (var j = 1; j < numSpaces; ++j) {
+		ticks.push(niceMin + (j * spacing));
+	}
+	ticks.push(niceMax);
+
+	return ticks;
+}
+
+function getTextBoundingRect({ context, x = 0, y = 0, text, rotate, fontSize, textAlign, textBaseline }) {
+		let rectX = 0;
+		let rectY = 0;
+		let rectWidth = context.measureText(text).width;
+		let rectHeight = fontSize;
+
+		switch (textAlign) {
+			case 'left':
+				rectX = x;
+				break;
+			case 'center':
+				rectX = x - rectWidth/2;
+				break;
+			case 'right':
+				rectX = x - rectWidth;
+				break;
+		}
+		switch (textBaseline) {
+			case 'top':
+				rectY = y;
+				break;
+			case 'middle':
+				rectY = y - rectHeight/2;
+				break;
+			case 'bottom':
+				rectY = y - rectHeight;
+				break;
+		}
+
+		let pointArray = [{ x: rectX, y: rectY },
+		{ x: rectX + rectWidth, y: rectY },
+		{ x: rectX, y: rectY + rectHeight },
+		{ x: rectX + rectWidth, y: rectY + rectHeight }];
+
+		let rotatedPointArray = pointArray.map(function (point) {
+
+			let _x = x + Math.cos(rotate)*(point.x - x) - Math.sin(rotate)*(point.y - y);
+			let _y = x + Math.sin(rotate)*(point.x - x) + Math.cos(rotate)*(point.y - y);
+
+			return {
+				x: _x,
+				y: _y
+			};
+		}, this);
+
+		let xArray = rotatedPointArray.map((point) => point.x);
+		let yArray = rotatedPointArray.map((point) => point.y);
+
+		rectX = min(xArray);
+		rectY = min(yArray);
+		rectWidth = max(xArray) - rectX;
+		rectHeight = max(yArray) - rectY;
+
+		return {
+			x: rectX,
+			y: rectY,
+			width: rectWidth,
+			height: rectHeight
+		}
+}
+
+let uid = 0;
+function uuid() {
+	return uid++;
+}
+
+function unique(array) {
+	let result = [];
+	let set = new Set(array);
+	for(let item of set.keys())
+		result.push(item);
+	return result;
+}
+
+function getCol(data, col) {
+	if(data[0] && data[0][col])
+		return data.map(item => item[col]);
+	else
+		return [];
+}
+
+function group(data, resultDim, dim1, dim2) {
+	let dim1Array = unique(getCol(data, dim1));
+	let dim2Array = dim2 ? unique(getCol(data, dim2)) : [];
+
+	let result = [];
+
+	data.forEach((item) => {
+		let i = dim1Array.findIndex(dim1Item => dim1Item === item[dim1]);		
+		result[i] = result[i] || [];
+		if(dim2) {
+			let j = dim2Array.findIndex(dim2Item => dim2Item === item[dim2]);
+			result[i][j] = item[resultDim];
+		}
+		else
+			result[i].push(item[resultDim]);
+	});
+
+	return result;	
 }
 
 
@@ -311,32 +601,196 @@ class Shape {
 
 /***/ }),
 
-/***/ 24:
+/***/ 28:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leerender__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__src_shape_line__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__src_shape_circle__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__src_shape_rect__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__src_shape_text__ = __webpack_require__(3);
+
+
+
 
 
 
 let leeRender = new __WEBPACK_IMPORTED_MODULE_0__src_leerender__["a" /* LeeRender */](document.querySelector('#leerender'));
-let rect = new __WEBPACK_IMPORTED_MODULE_1__src_shape_rect__["a" /* Rect */]({
-	x: 10,
-	y: 10,
-	width: 200,
-	height: 200
-})
-rect.addEventListener('mousemove', function (context, x, y) {
-	console.log(x, y);
-})
-leeRender.addShape(rect);
+// let rect = new Rect({
+// 	x: 0,
+// 	y: 0,
+// 	width: 25,
+// 	height: 25,
+// 	style: {
+// 		fillStyle: 'yellow'
+// 	}
+// });
+
+// let circle = new Circle({
+// 	x: 300,
+// 	y: 100,	
+// 	r: 25,
+// 	style: {
+// 		fillStyle: 'red'
+// 	}
+// })
+
+// circle.when(1000, {
+// 	r: 100
+// })
+
+// rect.when(1000, {
+// 	width: 375,
+// 	height: 200
+// }, function () {
+// 	circle.start(false);
+// }).start(false);
+
+
+// leeRender.addShape(circle);
+// leeRender.addShape(rect);
+
+
+let text = new __WEBPACK_IMPORTED_MODULE_4__src_shape_text__["a" /* Text */]({
+	x: 50,
+	y: 50,
+	value: '123456',
+	style: {
+		fontSize: 20
+	}
+});
+
+leeRender.addShape(text);
 leeRender.render();
 
 /***/ }),
 
 /***/ 3:
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape__ = __webpack_require__(0);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Text; });
+
+
+
+class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
+	constructor({ x, y, value, rotate = 0, style, renderType = 'fill', groupId, zIndex }) {
+		super({
+			type: 'text',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex
+		});
+
+		this.x = x;
+		this.y = y;
+		this.value = value.toString();
+
+		this.rotate = rotate;
+	}
+
+	isPointIn(context, x, y) {
+		let { x: _x, y: _y, width: _w, height: _h } = this.getBoundingRect(context);
+
+		return (x > _x) && (x < _x + _w) && (y > _y) && (y < _y + _h);
+	}
+
+	getBoundingRect(context) {
+		let rectX = 0;
+		let rectY = 0;
+		let rectWidth = context.measureText(this.value).width;
+		let rectHeight = parseInt(/\d+/.exec(context.font)[0]);
+
+		switch (context.textAlign) {
+			case 'left':
+				rectX = this.x;
+				break;
+			case 'center':
+				rectX = this.x - rectWidth/2;
+				break;
+			case 'right':
+				rectX = this.x - rectWidth;
+				break;
+		}
+		switch (context.textBaseline) {
+			case 'top':
+				rectY = this.y;
+				break;
+			case 'middle':
+				rectY = this.y - rectHeight/2;
+				break;
+			case 'bottom':
+				rectY = this.y - rectHeight;
+				break;
+		}
+
+		let pointArray = [{ x: rectX, y: rectY },
+		{ x: rectX + rectWidth, y: rectY },
+		{ x: rectX, y: rectY + rectHeight },
+		{ x: rectX + rectWidth, y: rectY + rectHeight }];
+
+		let rotatedPointArray = pointArray.map(function (point) {
+			let x = point.x;
+			let y = point.y;
+
+			let m = this.x;
+			let n = this.y;
+
+			let a = this.rotate;
+
+			let _x = m + Math.cos(a)*(x - m) - Math.sin(a)*(y - n);
+			let _y = n + Math.sin(a)*(x - m) + Math.cos(a)*(y - n);
+
+			return {
+				x: _x,
+				y: _y
+			};
+		}, this);
+
+		let xArray = rotatedPointArray.map((point) => point.x);
+		let yArray = rotatedPointArray.map((point) => point.y);
+
+		rectX = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* min */])(xArray);
+		rectY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* min */])(yArray);
+		rectWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(xArray) - rectX;
+		rectHeight = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(yArray) - rectY;
+
+		return {
+			x: rectX,
+			y: rectY,
+			width: rectWidth,
+			height: rectHeight
+		}
+	}
+
+	render(context) {
+		context.save();
+		for(let attr in this.style)
+			context[attr] = this.style[attr];
+
+		if(this.rotate !== 0) {
+			context.translate(this.x, this.y);
+			context.rotate(this.rotate);
+			context.fillText(this.value, 0, 0);		
+		}
+		else {
+
+			context.fillText(this.value, this.x, this.y);
+		}
+		context.restore();	
+	}
+}
+
+
+
+/***/ }),
+
+/***/ 4:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -366,19 +820,7 @@ class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 	}
 
 	buildPath(context) {
-		context.beginPath();
 		context.rect(this.x, this.y, this.width, this.height);		
-	}
-
-	animate(currentTime, duration) {
-		let currentHeight = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalHeight, duration);
-		this.height = Math.min(currentHeight, this.originalHeight);
-		this.y = this.originalY + this.originalHeight - this.height;
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
 	}
 }
 
@@ -386,7 +828,43 @@ class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 /***/ }),
 
-/***/ 4:
+/***/ 5:
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Circle; });
+
+
+
+class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ x, y, r, style, renderType, groupId, zIndex, isAnimation }) {
+		super({
+			type: 'circle',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex,
+			isAnimation: isAnimation
+		});
+
+		this.x = x;
+		this.y = y;
+		this.originalR = r;
+		this.r = r;
+	}
+
+	buildPath(context) {
+		context.arc(this.x, this.y, this.r, 0, 2*Math.PI);
+	}
+}
+
+
+
+/***/ }),
+
+/***/ 6:
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -514,6 +992,105 @@ class LeeRender {
 	}
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = LeeRender;
+
+
+/***/ }),
+
+/***/ 7:
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_easing__ = __webpack_require__(2);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Line; });
+
+
+
+
+class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ pointArray, isDashed = false, style, groupId, zIndex, isAnimation }) {
+		super({
+			type: 'line',
+			style: style,
+			renderType: 'stroke',
+			groupId: groupId,
+			zIndex: zIndex,
+			isAnimation: isAnimation
+		});
+
+		this.originalPointArray = pointArray;
+		this.pointArray = pointArray.map(({ x, y }) => {
+			return { x: x, y: y }
+		});
+
+		this.isDashed = isDashed;
+	}
+
+	buildPath(context) {
+		// if(context.lineWidth === 1) {
+		// 	for(let i = 0, p = this.pointArray[i], np = this.pointArray[i + 1]; i < this.pointArray.length - 1; i++) {
+		// 		// 竖线
+		// 		if(Math.round(p.x) === Math.round(np.x)) {
+		// 			p.x = np.y = Math.round(p.x) + 0.5;
+		// 		}
+		// 		// 横线
+		// 		if(Math.round(p.y) === Math.round(np.y)) {
+		// 			p.y = np.y = Math.round(p.y) + 0.5;
+		// 		}		
+		// 	}			
+		// }
+
+
+
+		this.pointArray.forEach(({ x, y }, index, array) => {
+			if(index === 0)
+				context.moveTo(x, y);
+			else {
+				let pp = array[index - 1];
+
+				// /* 对 1px 进行坐标对齐 */
+				// if(context.lineWidth === 1) {
+				// 	// 竖线
+				// 	if(Math.round(pp.x) === Math.round(x)) {
+
+				// 		x = pp.x = Math.round(pp.x) + 0.5;
+
+				// 	}
+				// 	// 横线
+				// 	if(Math.round(pp.y) === Math.round(y)) {
+
+				// 		y = pp.y = Math.round(pp.y) + 0.5;
+
+				// 	}
+				// }
+
+				/* 虚线 */
+				if(this.isDashed) {
+				    let dashLen = 5;  
+				    let dx = x - pp.x;
+				    let dy = y - pp.y;
+				    var num = Math.floor(Math.sqrt(Math.pow(dx, 2)+  Math.pow(dy, 2))/dashLen);
+
+				    for(let i = 0; i < num; i++) {
+				    	let _x = pp.x + (dx)/num*i;
+				    	let _y = pp.y + (dy)/num*i;
+
+				        context[i%2 == 0 ? 'moveTo' : 'lineTo'](_x, _y);  
+				    } 
+
+				    context.lineTo(x, y);
+				}
+				/* 实线 */
+				else {
+					context.lineTo(x, y);			
+				}				
+			}
+		}, this);
+
+	}
+}
+
 
 
 /***/ })

@@ -25,16 +25,7 @@ class Sector extends Shape {
 
 	}
 
-	animate(currentTime, duration) {
-		let currentStartRadian = animation.easeOutBounce(null, currentTime, 0, this.originalStartRadian, duration);
-		let currentEndRadian = animation.easeOutBounce(null, currentTime, 0, this.originalEndRadian, duration);
-		this.endRadian = Math.min(currentEndRadian, this.originalEndRadian);
-		this.startRadian = Math.min(currentStartRadian, this.originalStartRadian);
-	}
-
 	buildPath(context) {
-		context.beginPath();
-
 		context.moveTo(this.x + this.innerRadius*Math.cos(this.startRadian),
 			this.y + this.innerRadius*Math.sin(this.startRadian));
 		context.lineTo(this.x + this.outerRadius*Math.cos(this.startRadian),
@@ -46,12 +37,6 @@ class Sector extends Shape {
 			this.y + this.innerRadius*Math.sin(this.endRadian));
 
 		context.arc(this.x, this.y, this.innerRadius, this.endRadian, this.startRadian, true);
-		context.closePath();
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
 	}
 }
 

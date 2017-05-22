@@ -1,10 +1,12 @@
 import { max, min, linearTick } from '../util/util';
 import { Line } from '../shape/line';
 import { Circle } from '../shape/circle';
+import { Polygon, RegularPolygon } from '../shape/polygon';
 import { Text } from '../shape/text';
 
-class PolarAxis {
-	constructor({ thetaData, rData, x, y, width, height}) {
+class ThetaAxis {
+	constructor({ type = 'polar', thetaData, rData, x, y, width, height, tickCount = 5 }) {
+		this.type = type;
 		this.thetaData = thetaData;
 		this.rData = rData;
 		this.x = x;
@@ -12,12 +14,14 @@ class PolarAxis {
 		this.width = width;
 		this.height = height;
 		this.r = Math.min(width, height)/2 - 2*12;
+
+		this.tickCount = tickCount;
 	}
 
 	computeShape() {
 		let cx = this.x + this.width/2;
 		let cy = this.y + this.height/2;
-		let tickArray = linearTick(0, max(this.rData));
+		let tickArray = linearTick(0, max(this.rData), this.tickCount);
 		let shapeArray = [];
 		this.thetaData.forEach((item, index, array) => {
 			let interval = 2*Math.PI/array.length;
@@ -35,8 +39,8 @@ class PolarAxis {
 				},
 				isDashed: true
 			}));
-
-			radian += interval/2;
+			if(this.type === 'polar')
+				radian += interval/2;
 			let textX = cx + (this.r + 12)*Math.cos(radian);
 			let textY = cy + (this.r + 12)*Math.sin(radian);
 
@@ -53,11 +57,14 @@ class PolarAxis {
 			}));
 		});
 
+		let T = this.type === 'polar' ? Circle : RegularPolygon;
+
 		tickArray.forEach((tick, index, array) => {
-			shapeArray.push(new Circle({
+			shapeArray.push(new T({
 				x: cx,
 				y: cy,
 				r: index*this.r/(array.length - 1),
+				vertexNumber: this.thetaData.length,
 				renderType: 'stroke',
 				style: {
 					lineWidth: 1,
@@ -80,9 +87,8 @@ class PolarAxis {
 	}
 
 	getShape() {
-		this.shapeArray = this.computeShape();
-		return this.shapeArray;
+		return this.computeShape();
 	}
 }
 
-export { PolarAxis }
+export { ThetaAxis }

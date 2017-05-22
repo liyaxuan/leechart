@@ -21,19 +21,7 @@ class Rect extends Shape {
 	}
 
 	buildPath(context) {
-		context.beginPath();
 		context.rect(this.x, this.y, this.width, this.height);		
-	}
-
-	animate(currentTime, duration) {
-		let currentHeight = animation.easeInCubic(null, currentTime, 0, this.originalHeight, duration);
-		this.height = Math.min(currentHeight, this.originalHeight);
-		this.y = this.originalY + this.originalHeight - this.height;
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
 	}
 }
 

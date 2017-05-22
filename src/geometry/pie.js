@@ -5,16 +5,7 @@ import { Geometry } from './geometry'
 
 class PieChart extends Geometry {
 	constructor({ data, dim, x, y, width, height, render, space, type = 'pie' }) {
-		super({
-			data: data,
-			dim: dim,
-			x: x,
-			y: y,
-			width: width,
-			height: height,
-			render: render,
-			space: space
-		});
+		super({ data, dim, x, y, width, height, render, space });
 
 		this.type = type;
 	}
@@ -25,7 +16,7 @@ class PieChart extends Geometry {
 		let cx = this.x + this.width/2;
 		let cy = this.y + this.height/2;
 		let innerRadius = 0;
-		let radius = min([this.width, this.height])/2;
+		let radius = Math.min(this.width, this.height)/2;
 		let lastRadian = 3/2*Math.PI;
 
 		let thetaData = unique(getCol(this.data, dim.theta));
@@ -43,7 +34,7 @@ class PieChart extends Geometry {
 		}
 
 		let sumData = sum(data.reduce((pre, cur) => pre.concat(cur), []));
-		let { minTick, maxTick } = this.computeTick([0].concat(data.map(group => sum(group))));
+		let { minTick, maxTick } = this.computeTick(data.map(group => sum(group)), true);
 
 		let shapeArray = [];
 
@@ -109,6 +100,14 @@ class PieChart extends Geometry {
 				}
 
 				this.on(sector, obj);
+
+				sector.init({
+					startRadian: 0,
+					endRadian: 0
+				}).when(1000, {
+					startRadian: lastRadian,
+					endRadian: lastRadian + radian
+				}).start();
 
 				lastR = r;
 

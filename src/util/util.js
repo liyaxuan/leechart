@@ -46,13 +46,13 @@ function nice(range, round) {
 	return niceFraction * Math.pow(10, exponent);
 }
 
-function linearTick(min, max) {
+function linearTick(min, max, count = 11) {
 	var ticks = [];
 	// To get a "nice" value for the tick spacing, we will use the appropriately named
 	// "nice number" algorithm. See http://stackoverflow.com/questions/8506881/nice-label-algorithm-for-charts-with-minimum-ticks
 	// for details.
 	var niceRange = nice(max - min, false);
-	var spacing = nice(niceRange / (11 - 1), true);
+	var spacing = nice(niceRange / (count - 1), true);
 
 	var niceMin = Math.floor(min / spacing) * spacing;
 	var niceMax = Math.ceil(max / spacing) * spacing;
@@ -64,6 +64,7 @@ function linearTick(min, max) {
 		numSpaces = Math.ceil(numSpaces);
 	}
 	// Put the values into the ticks array
+
 	ticks.push(niceMin);
 	for (var j = 1; j < numSpaces; ++j) {
 		ticks.push(niceMin + (j * spacing));

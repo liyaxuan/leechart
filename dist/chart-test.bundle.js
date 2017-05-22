@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 22);
+/******/ 	return __webpack_require__(__webpack_require__.s = 26);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -71,7 +71,10 @@
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_easing__ = __webpack_require__(2);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Shape; });
+
+
 class Shape {
 	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false, isDisplay = true }) {
 		this.type = type;
@@ -88,14 +91,15 @@ class Shape {
 		this.onmouseout = [];
 		
 		this.isDisplay = true;
+
 		this.isAnimation = isAnimation;
+		this.animationArray = [];
 
 		this._render = null;
 	}
 
 	setRender(render) {
 		this._render = render;
-		this.startAnimation();
 	}
 
 	show() {
@@ -112,21 +116,104 @@ class Shape {
 		}
 	}
 
-	startAnimation() {
-		if(!this.isAnimation || !this.animate)
+	init(config) {
+		for(let attr in config) {
+			this[attr] = config[attr];
+		}
+		return this;	
+	}
+
+	when(duration, config, callback = function () {}) {
+		this.animationArray.push({ duration, config, callback });
+		return this;
+	}
+
+	run(index) {
+		function toEnd(current, begin, end) {
+			return end > begin ? Math.min(current, end) : Math.max(current, end);	
+		}
+
+		/* 队列为空 */
+		let length = this.animationArray.length;
+		if(length === 0)
 			return;
+		/* i 是动画队列的索引 */
+		let i = index;
+		/* 如果已经遍历过一遍队列了, 但是是循环的 */
+		if(index > length - 1 && this.isCycle)
+			i = i%length;
+		/* 如果已经遍历过一遍队列了, 但不是循环的 */
+		else if(index > length - 1 && !this.isCycle) {
+
+			return;
+		}
+			
+		/* 取出任务执行 */
+		let { duration, config } = this.animationArray[i];
+		
+		let attrArray = [];
+		for(let attr in config) {
+			let begin = this[attr];
+			let end = config[attr];
+			attrArray.push({ attr, begin, end });
+		}
 
 		let currentTime = 0;
-		let duration = 1000;
+		let func = __WEBPACK_IMPORTED_MODULE_0__util_easing__["a" /* default */].easeInOutQuad;
 		let timer = setInterval((function () {
-			if(currentTime >= duration)
-				clearInterval(timer);
+			if(currentTime > duration) {
+				clearInterval(timer);		
+				attrArray.forEach(({ attr, begin, end }) => {
+					if(Array.isArray(begin) && Array.isArray(end)) {
+						this[attr] = end.map(({ x, y }) => {
+							return { x, y }
+						});
+					}
+					else
+						this[attr] = end;
+				});
 
-			this.animate(currentTime, duration);
+				this.run(index + 1);
+				return;
+			}
+				
+			attrArray.forEach(({ attr, begin, end }) => {
+				if(Array.isArray(begin) && Array.isArray(end)) {
+					let current = begin.map((item, index) => {
+
+						let x = func(null, currentTime, item.x, end[index].x - item.x, duration);
+						let y = func(null, currentTime, item.y, end[index].y - item.y, duration);
+
+						x = toEnd(x, item.x, end[index].x);
+						y = toEnd(y, item.y, end[index].y);
+
+						return { x, y };
+					});
+
+					this[attr] = current;
+				}
+				/* 单值 x y width height r */
+				else {
+					let current = func(null, currentTime, begin, end - begin, duration);
+					this[attr] = toEnd(current, begin, end);					
+				}	
+			}, this);
 
 			this._render.requestRender();
 			currentTime += 1000/60;
-		}).bind(this), 1000/60);
+		}).bind(this), 1000/60);		
+	}
+
+	start(isCycle = false) {
+		this.isCycle = isCycle;
+		this.run(0);
+
+		return this;
+	}
+
+	stop() {
+		this.isCycle = false;
+		return this;
 	}
 
 	addEventListener(eventType, callback) {
@@ -153,11 +240,18 @@ class Shape {
 		}
 	}
 
+	isPointIn(context, x, y) {
+		context.beginPath();
+		this.buildPath(context);
+		return context.isPointInPath(x, y);
+	}
+
 	render(context) {
 		if(!this.isDisplay)
 			return;
 
 		context.save();
+		context.beginPath();
 		for(let attr in this.style)
 			context[attr] = this.style[attr];
 		this.buildPath && this.buildPath(context);
@@ -179,8 +273,8 @@ class Shape {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return max; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return min; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return max; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return min; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return sum; });
 /* unused harmony export range */
 /* unused harmony export nice */
@@ -238,13 +332,13 @@ function nice(range, round) {
 	return niceFraction * Math.pow(10, exponent);
 }
 
-function linearTick(min, max) {
+function linearTick(min, max, count = 11) {
 	var ticks = [];
 	// To get a "nice" value for the tick spacing, we will use the appropriately named
 	// "nice number" algorithm. See http://stackoverflow.com/questions/8506881/nice-label-algorithm-for-charts-with-minimum-ticks
 	// for details.
 	var niceRange = nice(max - min, false);
-	var spacing = nice(niceRange / (11 - 1), true);
+	var spacing = nice(niceRange / (count - 1), true);
 
 	var niceMin = Math.floor(min / spacing) * spacing;
 	var niceMax = Math.ceil(max / spacing) * spacing;
@@ -256,6 +350,7 @@ function linearTick(min, max) {
 		numSpaces = Math.ceil(numSpaces);
 	}
 	// Put the values into the ticks array
+
 	ticks.push(niceMin);
 	for (var j = 1; j < numSpaces; ++j) {
 		ticks.push(niceMin + (j * spacing));
@@ -506,6 +601,128 @@ function group(data, resultDim, dim1, dim2) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape__ = __webpack_require__(0);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Text; });
+
+
+
+class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
+	constructor({ x, y, value, rotate = 0, style, renderType = 'fill', groupId, zIndex }) {
+		super({
+			type: 'text',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex
+		});
+
+		this.x = x;
+		this.y = y;
+		this.value = value.toString();
+
+		this.rotate = rotate;
+	}
+
+	isPointIn(context, x, y) {
+		let { x: _x, y: _y, width: _w, height: _h } = this.getBoundingRect(context);
+
+		return (x > _x) && (x < _x + _w) && (y > _y) && (y < _y + _h);
+	}
+
+	getBoundingRect(context) {
+		let rectX = 0;
+		let rectY = 0;
+		let rectWidth = context.measureText(this.value).width;
+		let rectHeight = parseInt(/\d+/.exec(context.font)[0]);
+
+		switch (context.textAlign) {
+			case 'left':
+				rectX = this.x;
+				break;
+			case 'center':
+				rectX = this.x - rectWidth/2;
+				break;
+			case 'right':
+				rectX = this.x - rectWidth;
+				break;
+		}
+		switch (context.textBaseline) {
+			case 'top':
+				rectY = this.y;
+				break;
+			case 'middle':
+				rectY = this.y - rectHeight/2;
+				break;
+			case 'bottom':
+				rectY = this.y - rectHeight;
+				break;
+		}
+
+		let pointArray = [{ x: rectX, y: rectY },
+		{ x: rectX + rectWidth, y: rectY },
+		{ x: rectX, y: rectY + rectHeight },
+		{ x: rectX + rectWidth, y: rectY + rectHeight }];
+
+		let rotatedPointArray = pointArray.map(function (point) {
+			let x = point.x;
+			let y = point.y;
+
+			let m = this.x;
+			let n = this.y;
+
+			let a = this.rotate;
+
+			let _x = m + Math.cos(a)*(x - m) - Math.sin(a)*(y - n);
+			let _y = n + Math.sin(a)*(x - m) + Math.cos(a)*(y - n);
+
+			return {
+				x: _x,
+				y: _y
+			};
+		}, this);
+
+		let xArray = rotatedPointArray.map((point) => point.x);
+		let yArray = rotatedPointArray.map((point) => point.y);
+
+		rectX = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* min */])(xArray);
+		rectY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* min */])(yArray);
+		rectWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(xArray) - rectX;
+		rectHeight = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(yArray) - rectY;
+
+		return {
+			x: rectX,
+			y: rectY,
+			width: rectWidth,
+			height: rectHeight
+		}
+	}
+
+	render(context) {
+		context.save();
+		for(let attr in this.style)
+			context[attr] = this.style[attr];
+
+		if(this.rotate !== 0) {
+			context.translate(this.x, this.y);
+			context.rotate(this.rotate);
+			context.fillText(this.value, 0, 0);		
+		}
+		else {
+
+			context.fillText(this.value, this.x, this.y);
+		}
+		context.restore();	
+	}
+}
+
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Rect; });
@@ -532,26 +749,49 @@ class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 	}
 
 	buildPath(context) {
-		context.beginPath();
 		context.rect(this.x, this.y, this.width, this.height);		
-	}
-
-	animate(currentTime, duration) {
-		let currentHeight = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalHeight, duration);
-		this.height = Math.min(currentHeight, this.originalHeight);
-		this.y = this.originalY + this.originalHeight - this.height;
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
 	}
 }
 
 
 
 /***/ }),
-/* 4 */
+/* 5 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Circle; });
+
+
+
+class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ x, y, r, style, renderType, groupId, zIndex, isAnimation }) {
+		super({
+			type: 'circle',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex,
+			isAnimation: isAnimation
+		});
+
+		this.x = x;
+		this.y = y;
+		this.originalR = r;
+		this.r = r;
+	}
+
+	buildPath(context) {
+		context.arc(this.x, this.y, this.r, 0, 2*Math.PI);
+	}
+}
+
+
+
+/***/ }),
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -682,129 +922,105 @@ class LeeRender {
 
 
 /***/ }),
-/* 5 */
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape__ = __webpack_require__(0);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Text; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_easing__ = __webpack_require__(2);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Line; });
 
 
 
-class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
-	constructor({ x, y, value, rotate = 0, style, renderType = 'fill', groupId, zIndex }) {
+
+class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ pointArray, isDashed = false, style, groupId, zIndex, isAnimation }) {
 		super({
-			type: 'text',
+			type: 'line',
 			style: style,
-			renderType: renderType,
+			renderType: 'stroke',
 			groupId: groupId,
-			zIndex: zIndex
+			zIndex: zIndex,
+			isAnimation: isAnimation
 		});
 
-		this.x = x;
-		this.y = y;
-		this.value = value.toString();
+		this.originalPointArray = pointArray;
+		this.pointArray = pointArray.map(({ x, y }) => {
+			return { x: x, y: y }
+		});
 
-		this.rotate = rotate;
+		this.isDashed = isDashed;
 	}
 
-	isPointIn(context, x, y) {
-		let { x: _x, y: _y, width: _w, height: _h } = this.getBoundingRect(context);
+	buildPath(context) {
+		// if(context.lineWidth === 1) {
+		// 	for(let i = 0, p = this.pointArray[i], np = this.pointArray[i + 1]; i < this.pointArray.length - 1; i++) {
+		// 		// 竖线
+		// 		if(Math.round(p.x) === Math.round(np.x)) {
+		// 			p.x = np.y = Math.round(p.x) + 0.5;
+		// 		}
+		// 		// 横线
+		// 		if(Math.round(p.y) === Math.round(np.y)) {
+		// 			p.y = np.y = Math.round(p.y) + 0.5;
+		// 		}		
+		// 	}			
+		// }
 
-		return (x > _x) && (x < _x + _w) && (y > _y) && (y < _y + _h);
-	}
 
-	getBoundingRect(context) {
-		let rectX = 0;
-		let rectY = 0;
-		let rectWidth = context.measureText(this.value).width;
-		let rectHeight = parseInt(/\d+/.exec(context.font)[0]);
 
-		switch (context.textAlign) {
-			case 'left':
-				rectX = this.x;
-				break;
-			case 'center':
-				rectX = this.x - rectWidth/2;
-				break;
-			case 'right':
-				rectX = this.x - rectWidth;
-				break;
-		}
-		switch (context.textBaseline) {
-			case 'top':
-				rectY = this.y;
-				break;
-			case 'middle':
-				rectY = this.y - rectHeight/2;
-				break;
-			case 'bottom':
-				rectY = this.y - rectHeight;
-				break;
-		}
+		this.pointArray.forEach(({ x, y }, index, array) => {
+			if(index === 0)
+				context.moveTo(x, y);
+			else {
+				let pp = array[index - 1];
 
-		let pointArray = [{ x: rectX, y: rectY },
-		{ x: rectX + rectWidth, y: rectY },
-		{ x: rectX, y: rectY + rectHeight },
-		{ x: rectX + rectWidth, y: rectY + rectHeight }];
+				// /* 对 1px 进行坐标对齐 */
+				// if(context.lineWidth === 1) {
+				// 	// 竖线
+				// 	if(Math.round(pp.x) === Math.round(x)) {
 
-		let rotatedPointArray = pointArray.map(function (point) {
-			let x = point.x;
-			let y = point.y;
+				// 		x = pp.x = Math.round(pp.x) + 0.5;
 
-			let m = this.x;
-			let n = this.y;
+				// 	}
+				// 	// 横线
+				// 	if(Math.round(pp.y) === Math.round(y)) {
 
-			let a = this.rotate;
+				// 		y = pp.y = Math.round(pp.y) + 0.5;
 
-			let _x = m + Math.cos(a)*(x - m) - Math.sin(a)*(y - n);
-			let _y = n + Math.sin(a)*(x - m) + Math.cos(a)*(y - n);
+				// 	}
+				// }
 
-			return {
-				x: _x,
-				y: _y
-			};
+				/* 虚线 */
+				if(this.isDashed) {
+				    let dashLen = 5;  
+				    let dx = x - pp.x;
+				    let dy = y - pp.y;
+				    var num = Math.floor(Math.sqrt(Math.pow(dx, 2)+  Math.pow(dy, 2))/dashLen);
+
+				    for(let i = 0; i < num; i++) {
+				    	let _x = pp.x + (dx)/num*i;
+				    	let _y = pp.y + (dy)/num*i;
+
+				        context[i%2 == 0 ? 'moveTo' : 'lineTo'](_x, _y);  
+				    } 
+
+				    context.lineTo(x, y);
+				}
+				/* 实线 */
+				else {
+					context.lineTo(x, y);			
+				}				
+			}
 		}, this);
 
-		let xArray = rotatedPointArray.map((point) => point.x);
-		let yArray = rotatedPointArray.map((point) => point.y);
-
-		rectX = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(xArray);
-		rectY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(yArray);
-		rectWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(xArray) - rectX;
-		rectHeight = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(yArray) - rectY;
-
-		return {
-			x: rectX,
-			y: rectY,
-			width: rectWidth,
-			height: rectHeight
-		}
-	}
-
-	render(context) {
-		context.save();
-		for(let attr in this.style)
-			context[attr] = this.style[attr];
-
-		if(this.rotate !== 0) {
-			context.translate(this.x, this.y);
-			context.rotate(this.rotate);
-			context.fillText(this.value, 0, 0);		
-		}
-		else {
-
-			context.fillText(this.value, this.x, this.y);
-		}
-		context.restore();	
 	}
 }
 
 
 
 /***/ }),
-/* 6 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -838,60 +1054,14 @@ class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
 });
 
 /***/ }),
-/* 7 */
+/* 9 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_easing__ = __webpack_require__(2);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Circle; });
-
-
-
-class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
-	constructor({ x, y, r, style, renderType, groupId, zIndex, isAnimation }) {
-		super({
-			type: 'circle',
-			style: style,
-			renderType: renderType,
-			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
-		});
-
-		this.x = x;
-		this.y = y;
-		this.originalR = r;
-		this.r = r;
-	}
-
-	animate(currentTime, duration) {
-		let currentR = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, this.originalR, duration);
-		this.r = Math.min(currentR, this.originalR);
-	}
-
-	buildPath(context) {
-		context.beginPath();
-		context.arc(this.x, this.y, this.r, 0, 2*Math.PI);
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
-	}
-}
-
-
-
-/***/ }),
-/* 8 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_rect__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_circle__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__theme_macaron__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_rect__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_circle__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__theme_macaron__ = __webpack_require__(8);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__util_util__ = __webpack_require__(1);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Legend; });
 
@@ -964,7 +1134,7 @@ class Legend {
 		/* 左右方向排列的图例 */
 		else if (this.position === 'left' || this.position === 'right') {
 			let lengthArray = this.computeLength();
-			let maxLegendWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__util_util__["a" /* max */])(lengthArray);
+			let maxLegendWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__util_util__["b" /* max */])(lengthArray);
 			this.width = Math.max(this.width, maxLegendWidth + 2*padding);
 		}
 	}
@@ -1054,120 +1224,6 @@ class Legend {
 
 
 /***/ }),
-/* 9 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_easing__ = __webpack_require__(2);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Line; });
-
-
-
-
-class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
-	constructor({ pointArray, isDashed = false, style, groupId, zIndex, isAnimation }) {
-		super({
-			type: 'line',
-			style: style,
-			renderType: 'stroke',
-			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
-		});
-
-		this.originalPointArray = pointArray;
-		this.pointArray = pointArray.map(({ x, y }) => {
-			return { x: x, y: y }
-		});
-		this.isDashed = isDashed;
-	}
-
-	animate(currentTime, duration) {
-		let yArray = this.originalPointArray.map(({ x, y }) => y);
-		let maxY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["a" /* max */])(yArray);
-
-		this.pointArray = this.originalPointArray.map(({ x, y }) => {
-			let dY = Math.abs(maxY - y);
-			let currentY = maxY - __WEBPACK_IMPORTED_MODULE_2__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, dY, duration);
-			return {
-				x: x,
-				y: Math.max(currentY, y)
-			};
-		});
-	}
-
-	buildPath(context) {
-		context.beginPath();
-		
-		if(context.lineWidth === 1) 
-			for(let i = 0, p = this.pointArray[i], np = this.pointArray[i + 1]; i < this.pointArray.length - 1; i++) {
-				// 竖线
-				if(Math.round(p.x) === Math.round(np.x)) {
-					p.x = np.x = Math.round(np.x) + 0.5;
-				}
-				// 横线
-				if(Math.round(p.y) === Math.round(np.y)) {
-					p.y = np.y = Math.round(np.y) + 0.5;
-				}				
-			}
-
-		this.pointArray.forEach(({ x, y }, index, array) => {
-			if(index === 0)
-				context.moveTo(x, y);
-			else {
-				let pp = array[index - 1];
-
-				// /* 对 1px 进行坐标对齐 */
-				// if(context.lineWidth === 1) {
-				// 	// 竖线
-				// 	if(Math.round(pp.x) === Math.round(x)) {
-
-				// 		x = pp.x = Math.round(pp.x) + 0.5;
-
-				// 	}
-				// 	// 横线
-				// 	if(Math.round(pp.y) === Math.round(y)) {
-
-				// 		y = pp.y = Math.round(pp.y) + 0.5;
-
-				// 	}
-				// }
-
-				/* 虚线 */
-				if(this.isDashed) {
-				    let dashLen = 5;  
-				    let dx = x - pp.x;
-				    let dy = y - pp.y;
-				    var num = Math.floor(Math.sqrt(Math.pow(dx, 2)+  Math.pow(dy, 2))/dashLen);
-
-				    for(let i = 0; i < num; i++) {
-				    	let _x = pp.x + (dx)/num*i;
-				    	let _y = pp.y + (dy)/num*i;
-
-				        context[i%2 == 0 ? 'moveTo' : 'lineTo'](_x, _y);  
-				    } 
-
-				    context.lineTo(x, y);
-				}
-				/* 实线 */
-				else {
-					context.lineTo(x, y);			
-				}				
-			}
-		}, this);
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
-	}
-}
-
-
-
-/***/ }),
 /* 10 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -1216,12 +1272,13 @@ class Geometry {
 		return { xData, yData, colorData }	
 	}
 
-	computeTick(yData) {
-		let data = yData.reduce((pre, cur) => pre.concat(cur), []);
-
-		let tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* linearTick */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(data), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(data));
-		let minTick = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(tickArray);
-		let maxTick = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(tickArray);
+	computeTick(data, isBeginAtZero = false) {
+		let _data = data.reduce((pre, cur) => pre.concat(cur), []);
+		let maxData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(_data);
+		let minData = isBeginAtZero ? Math.min(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* min */])(_data), 0) : __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* min */])(_data);
+		let tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* linearTick */])(minData, maxData);
+		let minTick = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* min */])(tickArray);
+		let maxTick = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(tickArray);
 
 		return { minTick, maxTick };
 	}
@@ -1247,8 +1304,7 @@ class Geometry {
 	}
 
 	getShape() {
-		this.shapeArray = this.computeShape();
-		return this.shapeArray
+		return this.computeShape();
 	}
 }
 
@@ -1259,16 +1315,65 @@ class Geometry {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Polygon; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return RegularPolygon; });
+
+
+class Polygon extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ vertexArray, style, renderType, groupId, zIndex }) {
+		super({
+			type: 'polygon',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex
+		});
+
+		this.vertexArray = vertexArray;
+	}
+
+	buildPath(context) {
+		this.vertexArray.forEach(function (vertex) {
+			context.lineTo(vertex.x, vertex.y);
+		}, this);
+		context.lineTo(this.vertexArray[0].x, this.vertexArray[0].y);
+	}
+}
+
+class RegularPolygon extends Polygon {
+	constructor({ x, y, r, vertexNumber, style, renderType }) {
+		super({
+			vertexArray: new Array(vertexNumber).fill(0).map(function (item, index) {
+				let radian = 2*Math.PI/vertexNumber;
+				return {
+					x: x + r*Math.cos(Math.PI/2 - index*radian),
+					y: y - r*Math.sin(Math.PI/2 - index*radian)
+				}
+			}),
+			style: style,
+			renderType: renderType
+		});
+	}
+}
+
+
+
+/***/ }),
+/* 12 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_text__ = __webpack_require__(3);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return LinearAxis; });
 
 
 
 
 class LinearAxis {
-	constructor({ data, type = 'linear', chartType, x = 0, y = 0, width, height, bodyHeight, bodyWidth, position = 'left', space = 0, isZero = true, isGrid = true, render }) {
+	constructor({ data, type = 'linear', chartType, x = 0, y = 0, width, height, bodyHeight, bodyWidth, position = 'left', space = 0, isBeginAtZero = false, isGrid = true, render }) {
 		this.data = data;
 		/* 数据相关的 */
 
@@ -1282,7 +1387,7 @@ class LinearAxis {
 		this.position = position;
 		this.space = space;
 		this.isGrid = isGrid;
-		this.isZero = isZero;
+		this.isBeginAtZero = isBeginAtZero;
 
 		this.bodyWidth = bodyWidth;
 		this.bodyHeight = bodyHeight;
@@ -1305,7 +1410,7 @@ class LinearAxis {
 		let tickArray = [];
 
 		if(this.type === 'linear') {
-			tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* linearTick */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])(this.data), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(this.data));
+			tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* linearTick */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* min */])(this.data), __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(this.data));
 
 			if(this.isZero && tickArray[0] > 0)
 				tickArray.unshift(0);
@@ -1352,8 +1457,7 @@ class LinearAxis {
 		let context = this.render.getContext();
 
 		let limitedLabelWidth = 0;
-		let maxLabelWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(this.tickArray.map(tick => context.measureText(tick.value).width ));
-
+		let maxLabelWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(this.tickArray.map(tick => context.measureText(tick.value).width ));
 		
 		/* 水平坐标轴的限制在于宽度 */
 		if(/top|bottom/.test(this.position)) {
@@ -1534,12 +1638,118 @@ class LinearAxis {
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_text__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_round_rect__ = __webpack_require__(19);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_circle__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__shape_polygon__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__shape_text__ = __webpack_require__(3);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ThetaAxis; });
+
+
+
+
+
+
+class ThetaAxis {
+	constructor({ type = 'polar', thetaData, rData, x, y, width, height, tickCount = 5 }) {
+		this.type = type;
+		this.thetaData = thetaData;
+		this.rData = rData;
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+		this.r = Math.min(width, height)/2 - 2*12;
+
+		this.tickCount = tickCount;
+	}
+
+	computeShape() {
+		let cx = this.x + this.width/2;
+		let cy = this.y + this.height/2;
+		let tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* linearTick */])(0, __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(this.rData), this.tickCount);
+		let shapeArray = [];
+		this.thetaData.forEach((item, index, array) => {
+			let interval = 2*Math.PI/array.length;
+
+			let radian = 3/2*Math.PI + index*interval;
+
+			let x = cx + this.r*Math.cos(radian);
+			let y = cy + this.r*Math.sin(radian);
+
+			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_line__["a" /* Line */]({
+				pointArray: [{ x: cx, y: cy }, { x: x, y: y }],
+				style: {
+					lineWidth: 1,
+					strokeStyle: '#d9d9d9'					
+				},
+				isDashed: true
+			}));
+			if(this.type === 'polar')
+				radian += interval/2;
+			let textX = cx + (this.r + 12)*Math.cos(radian);
+			let textY = cy + (this.r + 12)*Math.sin(radian);
+
+			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_4__shape_text__["a" /* Text */]({
+				x: textX,
+				y: textY,
+				value: item,
+				rotate: 1/2*Math.PI + radian,
+				style: {
+					textAlign: 'center',
+					textBaseline: 'bottom',	
+					fillStyle: '#222222'	
+				}
+			}));
+		});
+
+		let T = this.type === 'polar' ? __WEBPACK_IMPORTED_MODULE_2__shape_circle__["a" /* Circle */] : __WEBPACK_IMPORTED_MODULE_3__shape_polygon__["b" /* RegularPolygon */];
+
+		tickArray.forEach((tick, index, array) => {
+			shapeArray.push(new T({
+				x: cx,
+				y: cy,
+				r: index*this.r/(array.length - 1),
+				vertexNumber: this.thetaData.length,
+				renderType: 'stroke',
+				style: {
+					lineWidth: 1,
+					strokeStyle: index === array.length - 1 ? '#d9d9d9' : '#d9d9d9'
+				}
+			}));
+
+			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_4__shape_text__["a" /* Text */]({
+				x: cx ,
+				y: cy - index*this.r/(array.length - 1),
+				value: tick,
+				style: {
+					textAlign: 'center',
+					textBaseline: 'middle'
+				}
+			}));
+		}, this);
+
+		return shapeArray;
+	}
+
+	getShape() {
+		return this.computeShape();
+	}
+}
+
+
+
+/***/ }),
+/* 14 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape_text__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_round_rect__ = __webpack_require__(23);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__util_util__ = __webpack_require__(1);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ToolTip; });
 
@@ -1618,7 +1828,7 @@ class ToolTip {
 	computeBoundingRect() {
 		let context = this.render.getContext();
 
-		let maxTextWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["a" /* max */])(this.textArray.map(text => context.measureText(text).width));
+		let maxTextWidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__util_util__["b" /* max */])(this.textArray.map(text => context.measureText(text).width));
 
 		let width = maxTextWidth + padding*2;
 		let height = (this.textArray.length - 1)*(fontSize + margin) + fontSize + 2*padding;
@@ -1680,23 +1890,25 @@ class ToolTip {
 
 
 /***/ }),
-/* 13 */
+/* 15 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__geometry_bar__ = __webpack_require__(14);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__geometry_line__ = __webpack_require__(15);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__geometry_point__ = __webpack_require__(17);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__geometry_pie__ = __webpack_require__(16);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__axis_polar__ = __webpack_require__(26);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__axis_linear__ = __webpack_require__(11);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__legend_legend__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__tooltip_tooltip__ = __webpack_require__(12);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__shape_rect__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__leerender__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__theme_macaron__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__geometry_bar__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__geometry_line__ = __webpack_require__(17);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__geometry_point__ = __webpack_require__(19);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__geometry_pie__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__geometry_radar__ = __webpack_require__(20);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__axis_theta__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__axis_linear__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__legend_legend__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__tooltip_tooltip__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__shape_rect__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__leerender__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__theme_macaron__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__util_util__ = __webpack_require__(1);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return LeeChart; });
+
 
 
 
@@ -1741,7 +1953,7 @@ class LeeChart {
 			canvas.height = this.height;
 			canvas.style = `position: absolute; z-index: ${index}`;
 			this[`${prefix}Canvas`] = canvas;
-			this[`${prefix}Render`] = new __WEBPACK_IMPORTED_MODULE_9__leerender__["a" /* LeeRender */](canvas);
+			this[`${prefix}Render`] = new __WEBPACK_IMPORTED_MODULE_10__leerender__["a" /* LeeRender */](canvas);
 
 			this.container.appendChild(canvas);
 		}, this);
@@ -1752,12 +1964,22 @@ class LeeChart {
 			top: [],
 			bottom: []
 		};
+
+		this.isStacked = false;
 	}
 
 	type(_type) {
 		if(/line|point|bar|pie|doughnut|polar|radar/.test(_type))
 			this._type = _type;
 		return this;
+	}
+
+	stack(isStacked = true) {
+		this.isStacked = isStacked;
+	}
+
+	area(isArea = true) {
+		this.isArea = isArea;
 	}
 
 	data(_data) {
@@ -1769,16 +1991,16 @@ class LeeChart {
 	x(col) {
 		if(/line|point|bar/.test(this._type)) {
 			this._xCol = col;
-			this._xData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_11__util_util__["c" /* unique */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_11__util_util__["d" /* getCol */])(this._data, col));
+			this._xData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_12__util_util__["c" /* unique */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_12__util_util__["d" /* getCol */])(this._data, col));
 		}
-			
+		
 		return this;
 	}
 
 	y(col) {
 		if(/line|point|bar/.test(this._type)) {
 			this._yCol = col;
-			this._yData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_11__util_util__["e" /* group */])(this._data, col, this._xCol, this._colorCol);
+			this._yData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_12__util_util__["e" /* group */])(this._data, col, this._xCol, this._colorCol);
 		}
 			
 		return this;
@@ -1787,7 +2009,7 @@ class LeeChart {
 	theta(col) {
 		if(/pie|doughnut|polar|radar/.test(this._type)) {
 			this._thetaCol = col;
-			this._thetaData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_11__util_util__["e" /* group */])(this._data, col, this._colorCol);
+			this._thetaData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_12__util_util__["e" /* group */])(this._data, col, this._colorCol);
 		}
 			
 		return this;			
@@ -1796,7 +2018,7 @@ class LeeChart {
 	r(col) {
 		if(/pie|doughnut|polar|radar/.test(this._type)) {
 			this._rCol = col;
-			this._rData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_11__util_util__["e" /* group */])(this._data, col, this._thetaCol, this._colorCol);
+			this._rData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_12__util_util__["e" /* group */])(this._data, col, this._thetaCol, this._colorCol);
 		}
 			
 		return this;
@@ -1804,14 +2026,14 @@ class LeeChart {
 
 	color(col) {
 		this._colorCol = col;
-		this._colorData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_11__util_util__["c" /* unique */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_11__util_util__["d" /* getCol */])(this._data, col));
+		this._colorData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_12__util_util__["c" /* unique */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_12__util_util__["d" /* getCol */])(this._data, col));
 
 		return this;
 	}
 
 	/* 构建坐标轴和图表 */
 	build() {
-		this._legend = new __WEBPACK_IMPORTED_MODULE_6__legend_legend__["a" /* Legend */]({
+		this._legend = new __WEBPACK_IMPORTED_MODULE_7__legend_legend__["a" /* Legend */]({
 			data: this._colorData || this._xData || this._thetaData,
 			x: this.padding.left,
 			y: this.height - this.padding.bottom,
@@ -1826,7 +2048,7 @@ class LeeChart {
 		if(/line|point|bar/.test(this._type)) {
 			let space = 24;
 
-			this._xAxis = new __WEBPACK_IMPORTED_MODULE_5__axis_linear__["a" /* LinearAxis */]({
+			this._xAxis = new __WEBPACK_IMPORTED_MODULE_6__axis_linear__["a" /* LinearAxis */]({
 				data: this._xData,
 				type: 'category',
 				chartType: this._type,
@@ -1840,7 +2062,7 @@ class LeeChart {
 
 			this.box.bottom.push(this._xAxis);
 
-			this._yAxis = new __WEBPACK_IMPORTED_MODULE_5__axis_linear__["a" /* LinearAxis */]({
+			this._yAxis = new __WEBPACK_IMPORTED_MODULE_6__axis_linear__["a" /* LinearAxis */]({
 				data: this._yData.reduce((pre, cur) => pre.concat(cur), []),
 				type: 'linear',
 				width: this.padding.left,
@@ -1876,16 +2098,17 @@ class LeeChart {
 			else
 				this._chart = new __WEBPACK_IMPORTED_MODULE_2__geometry_point__["a" /* PointChart */](config);				
 		}
-		else if(/pie|doughnut|polar/.test(this._type)) {
+		else if(/pie|doughnut|polar|radar/.test(this._type)) {
 			let dim = {
 				theta: this._thetaCol,
 				color: this._colorCol
 			};
 
-			if(/polar/.test(this._type)) {
+			if(/polar|radar/.test(this._type)) {
 				dim.r = this._rCol;
-				this._polarAxis = new __WEBPACK_IMPORTED_MODULE_4__axis_polar__["a" /* PolarAxis */]({
-					thetaData: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_11__util_util__["c" /* unique */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_11__util_util__["d" /* getCol */])(this._data, this._thetaCol)),
+				this._thetaAxis = new __WEBPACK_IMPORTED_MODULE_5__axis_theta__["a" /* ThetaAxis */]({
+					type: this._type,
+					thetaData: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_12__util_util__["c" /* unique */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_12__util_util__["d" /* getCol */])(this._data, this._thetaCol)),
 					rData: this._rData.reduce((pre, cur) => pre.concat(cur), []),
 					x: this.padding.left,
 					y: this.padding.top,
@@ -1894,7 +2117,9 @@ class LeeChart {
 				});
 			}
 
-			this._chart = new __WEBPACK_IMPORTED_MODULE_3__geometry_pie__["a" /* PieChart */]({
+			let T = this._type === 'radar' ? __WEBPACK_IMPORTED_MODULE_4__geometry_radar__["a" /* RadarChart */] : __WEBPACK_IMPORTED_MODULE_3__geometry_pie__["a" /* PieChart */];
+
+			this._chart = new T({
 				type: this._type,
 				data: this._data,
 				dim: dim,
@@ -1916,7 +2141,7 @@ class LeeChart {
 				colorData = this._thetaData
 		}
 
-		let color = __WEBPACK_IMPORTED_MODULE_10__theme_macaron__["a" /* default */].color.slice(0, Math.max(colorData.length, 1))
+		let color = __WEBPACK_IMPORTED_MODULE_11__theme_macaron__["a" /* default */].color.slice(0, Math.max(colorData.length, 1))
 		this._chart.color(color);
 		this._legend.color(color);
 
@@ -1975,7 +2200,7 @@ class LeeChart {
 		this._chart.width = this.bodyWidth;
 		this._chart.height = this.bodyHeight;
 
-		if(this._type === 'polar') {
+		if(this._type === 'polar' || this._type === 'radar') {
 			this._chart.x = this.padding.left + 24;
 			this._chart.y = this.padding.top + 24;
 			this._chart.width = this.bodyWidth - 48;
@@ -1989,7 +2214,7 @@ class LeeChart {
 			height: this.bodyHeight
 		};
 
-		this._toolTip = new __WEBPACK_IMPORTED_MODULE_7__tooltip_tooltip__["a" /* ToolTip */]({
+		this._toolTip = new __WEBPACK_IMPORTED_MODULE_8__tooltip_tooltip__["a" /* ToolTip */]({
 			data: this._data[0],
 			x: chartBody.x,
 			y: chartBody.y,
@@ -2030,8 +2255,8 @@ class LeeChart {
 			this.backRender.addShape(this._xAxis.getShape());
 			this.backRender.addShape(this._yAxis.getShape());
 		}
-		else if(/polar/.test(this._type))
-			this.backRender.addShape(this._polarAxis.getShape());
+		else if(/polar|radar/.test(this._type))
+			this.backRender.addShape(this._thetaAxis.getShape());
 		this.bodyRender.addShape(this._chart.getShape());
 		this.frontRender.addShape(this._legend.getShape());
 
@@ -2044,13 +2269,13 @@ class LeeChart {
 
 
 /***/ }),
-/* 14 */
+/* 16 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_rect__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__tooltip_tooltip__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_rect__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__tooltip_tooltip__ = __webpack_require__(14);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__geometry__ = __webpack_require__(10);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return BarChart; });
 
@@ -2061,19 +2286,11 @@ class LeeChart {
 let margin = 6;
 
 class BarChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry */] {
-	constructor({ data, dim, x, y, width, height, render, space, isStacked = false }) {
-		super({
-			data: data,
-			dim: dim,
-			x: x,
-			y: y,
-			width: width,
-			height: height,
-			render: render,
-			space: space
-		});
+	constructor({ data, dim, x, y, width, height, render, space, isStacked = true, isBeginAtZero = false }) {
+		super({ data, dim, x, y, width, height, render, space });
 
 		this.isStacked = isStacked;
+		this.isBeginAtZero = isBeginAtZero
 	}
 
 	computeShape() {
@@ -2084,19 +2301,30 @@ class BarChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 		let intervalWidth = (this.width - 2*space)/yData.length;
 		let areaWidth = 0.8*intervalWidth;
 		let barWidth = (areaWidth - (yData[0].length - 1)*margin)/yData[0].length;
+		if(this.isStacked)
+			barWidth = areaWidth
 
-		let { minTick, maxTick } = this.computeTick(yData);
+		let { minTick, maxTick } = this.computeTick(yData, this.isBeginAtZero);
+		if(this.isStacked) {
+			let result = this.computeTick(yData.map(group => __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["g" /* sum */])(group)), this.isBeginAtZero);
+			maxTick = result.maxTick;
+		}
 
 		let shapeArray = yData.map((group, groupIndex) => {
 
 			let startX = this.x + space + groupIndex*intervalWidth + intervalWidth/2 - areaWidth/2;
-
-			return group.map((item, index) => {
+			let heap = 0;
+			let rectGroup = group.map((item, index) => {
 
 				let x = startX + index*(barWidth + margin);
 				let barHeight = this.height*(item - minTick)/(maxTick - minTick);
 				let y = this.y + this.height - barHeight;
 				let color = dim.color ? this.color[index] : this.color[groupIndex]
+
+				if(this.isStacked) {
+					x = startX;
+					y = this.y + this.height - heap - barHeight;
+				}
 
 				let rect = new __WEBPACK_IMPORTED_MODULE_1__shape_rect__["a" /* Rect */]({
 					x: x,
@@ -2109,6 +2337,8 @@ class BarChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 					isAnimation: true
 				});
 
+				rect.init({ y: y + barHeight, height: 0 }).when(1000, { y: y, height: barHeight }).start();
+
 				let obj = {
 					[dim.x]: xData[groupIndex],
 					[dim.y]: yData[groupIndex][index]			
@@ -2117,9 +2347,11 @@ class BarChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 					obj[dim.color] = colorData[index];
 
 				this.on(rect, obj);
-
+				heap += barHeight; 
 				return rect;
 			}, this);
+
+			return rectGroup;
 		}, this);
 
 		return shapeArray.reduce((pre, cur) => pre.concat(cur), []);
@@ -2129,15 +2361,17 @@ class BarChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 
 
 /***/ }),
-/* 15 */
+/* 17 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_circle__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_line__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__shape_bezier_curve__ = __webpack_require__(18);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__geometry__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_circle__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_line__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__shape_bezier_curve__ = __webpack_require__(21);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__shape_polygon__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__shape_custom_shape__ = __webpack_require__(22);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__geometry__ = __webpack_require__(10);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return LineChart; });
 
 
@@ -2145,21 +2379,15 @@ class BarChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 
 
 
-class LineChart extends __WEBPACK_IMPORTED_MODULE_4__geometry__["a" /* Geometry */] {
-	constructor({ data, dim, x, y, width, height, render, space, isBezierCurve = true, isArea = true }) {
-		super({
-			data: data,
-			dim: dim,
-			x: x,
-			y: y,
-			width: width,
-			height: height,
-			render: render,
-			space: space
-		});
+
+
+class LineChart extends __WEBPACK_IMPORTED_MODULE_6__geometry__["a" /* Geometry */] {
+	constructor({ data, dim, x, y, width, height, render, space, isBezierCurve = false, isArea = true, isStacked = false, isBeginAtZero = false }) {
+		super({ data, dim, x, y, width, height, render, space });
 
 		this.isBezierCurve = isBezierCurve;
 		this.isArea = isArea;
+		this.isBeginAtZero = isBeginAtZero;
 	}
 
 	computeShape() {
@@ -2169,14 +2397,17 @@ class LineChart extends __WEBPACK_IMPORTED_MODULE_4__geometry__["a" /* Geometry 
 		let space = this.space;
 		let intervalWidth = (this.width - 2*space)/(yData.length - 1);
 
-		let { minTick, maxTick } = this.computeTick(yData);
+		let { minTick, maxTick } = this.computeTick(yData, this.isBeginAtZero);
+		if(this.isStacked)
+			maxTick = this.computeTick(yData.map(group => __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["g" /* sum */])(group)), this.isBeginAtZero);
 
 		let T = this.isBezierCurve ? __WEBPACK_IMPORTED_MODULE_3__shape_bezier_curve__["a" /* BezierCurve */] : __WEBPACK_IMPORTED_MODULE_2__shape_line__["a" /* Line */];
 
 		let shapeArray = [];
-		let pointArray = [];
+		let pointGroup = [];
 
 		yData.forEach((group, groupIndex) => {
+
 			group.forEach((item, index) => {
 				let x = this.x + space + groupIndex*intervalWidth;
 				let pointHeight = this.height*(item - minTick)/(maxTick - minTick);
@@ -2207,14 +2438,16 @@ class LineChart extends __WEBPACK_IMPORTED_MODULE_4__geometry__["a" /* Geometry 
 
 				shapeArray.push(circle);
 
-				pointArray[index] = pointArray[index] || [];
-				pointArray[index].push({ x, y });
+				pointGroup[index] = pointGroup[index] || [];
+				pointGroup[index].push({ x, y });
 			}, this);
 		}, this);
 
-		pointArray.forEach((item, index) => {
+		pointGroup.forEach((array, index) => {
+			let maxY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* max */])(array.map(({ x, y }) => y));
+
 			let line = new T({
-				pointArray: item,
+				pointArray: array,
 				style: {
 					strokeStyle: this.color[index],
 					lineWidth: 2,
@@ -2223,8 +2456,109 @@ class LineChart extends __WEBPACK_IMPORTED_MODULE_4__geometry__["a" /* Geometry 
 				isAnimation: true			
 			});
 
+			line.init({
+				pointArray: array.map(({ x, y }) => {
+					return { x: x, y: maxY }
+				})
+			}).when(1000, {
+				pointArray: array
+			}).start();
+
 			shapeArray.push(line);
+
+			if(this.isArea) {
+				let minX = array[0].x;					
+				let maxX = array[array.length - 1].x;
+				let y = this.y + this.height;
+
+
+				if(this.isBezierCurve) {
+
+					let area = new __WEBPACK_IMPORTED_MODULE_5__shape_custom_shape__["a" /* CustomShape */]({
+						config: {
+							sx: minX,
+							sy: y,
+							ex: maxX,
+							ey: y,
+							bezierArray: array							
+						},
+			
+						renderType: 'fill',
+						style: {
+							fillStyle: this.color[index],
+							globalAlpha: 0.5
+						},
+						zIndex: 0,
+						buildPath: function (context) {
+							context.moveTo(this.sx, this.sy);
+							this.bezierArray.forEach(({ x, y }, index, array) => {
+								if(index === 0)
+									context.lineTo(x, y);
+								else {
+									let midX = (array[index - 1].x + x)/2;
+									let preY = array[index - 1].y;
+									context.bezierCurveTo(midX, preY, midX, y, x, y);
+								}
+							});	
+							context.lineTo(this.ex, this.ey);
+
+							context.closePath();							
+						}
+					});
+
+					area.init({
+						sx: minX,
+						y: y,
+						ex: maxX,
+						ey: y,
+						bezierArray: array.map(({ x }) => {
+							return { x: x, y: y }
+						})
+					}).when(1000, {
+						sx: minX,
+						y: y,
+						ex: maxX,
+						ey: y,
+						bezierArray: array.map(({ x, y }) => {
+							return { x: x, y: y }
+						})			
+					}).start();
+
+					shapeArray.push(area);
+				}
+				else {
+					let vertexArray = array.map(({ x, y }) => {
+						return { x, y };
+					});
+					vertexArray.unshift({ x: minX, y: y })
+					vertexArray.push({ x: maxX, y: y })
+					vertexArray.push({ x: minX, y: y });
+
+					let polygon = new __WEBPACK_IMPORTED_MODULE_4__shape_polygon__["a" /* Polygon */]({
+						vertexArray: vertexArray,
+						renderType: 'fill',
+						style: {
+							fillStyle: this.color[index],
+							globalAlpha: 0.50
+						},
+						zIndex: 0
+					});
+
+					polygon.init({
+						vertexArray: [{ x: minX, y: y }].concat(array.map(({ x }) => {
+							return { x, y }
+						})).concat([{ x: maxX, y: y }, { x: minX, y: y }])
+					}).when(1000, {
+						vertexArray: vertexArray.map(({ x, y }) => {
+							return { x, y }
+						})
+					}).start();
+
+					shapeArray.push(polygon);
+				}
+			}
 		}, this);
+
 
 		return shapeArray;
 	}
@@ -2233,13 +2567,13 @@ class LineChart extends __WEBPACK_IMPORTED_MODULE_4__geometry__["a" /* Geometry 
 
 
 /***/ }),
-/* 16 */
+/* 18 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_sector__ = __webpack_require__(20);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_sector__ = __webpack_require__(24);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__geometry__ = __webpack_require__(10);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return PieChart; });
 
@@ -2249,16 +2583,7 @@ class LineChart extends __WEBPACK_IMPORTED_MODULE_4__geometry__["a" /* Geometry 
 
 class PieChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry */] {
 	constructor({ data, dim, x, y, width, height, render, space, type = 'pie' }) {
-		super({
-			data: data,
-			dim: dim,
-			x: x,
-			y: y,
-			width: width,
-			height: height,
-			render: render,
-			space: space
-		});
+		super({ data, dim, x, y, width, height, render, space });
 
 		this.type = type;
 	}
@@ -2269,7 +2594,7 @@ class PieChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 		let cx = this.x + this.width/2;
 		let cy = this.y + this.height/2;
 		let innerRadius = 0;
-		let radius = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["b" /* min */])([this.width, this.height])/2;
+		let radius = Math.min(this.width, this.height)/2;
 		let lastRadian = 3/2*Math.PI;
 
 		let thetaData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["c" /* unique */])(__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["d" /* getCol */])(this.data, dim.theta));
@@ -2287,7 +2612,7 @@ class PieChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 		}
 
 		let sumData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["g" /* sum */])(data.reduce((pre, cur) => pre.concat(cur), []));
-		let { minTick, maxTick } = this.computeTick([0].concat(data.map(group => __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["g" /* sum */])(group))));
+		let { minTick, maxTick } = this.computeTick(data.map(group => __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["g" /* sum */])(group)), true);
 
 		let shapeArray = [];
 
@@ -2354,6 +2679,14 @@ class PieChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 
 				this.on(sector, obj);
 
+				sector.init({
+					startRadian: 0,
+					endRadian: 0
+				}).when(1000, {
+					startRadian: lastRadian,
+					endRadian: lastRadian + radian
+				}).start();
+
 				lastR = r;
 
 				shapeArray.push(sector);		
@@ -2369,12 +2702,12 @@ class PieChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 
 
 /***/ }),
-/* 17 */
+/* 19 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_circle__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_circle__ = __webpack_require__(5);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__geometry__ = __webpack_require__(10);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return PointChart; });
 
@@ -2382,17 +2715,10 @@ class PieChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry *
 
 
 class PointChart extends __WEBPACK_IMPORTED_MODULE_2__geometry__["a" /* Geometry */] {
-	constructor({ data, dim, x, y, width, height, render, space }) {
-		super({
-			data: data,
-			dim: dim,
-			x: x,
-			y: y,
-			width: width,
-			height: height,
-			render: render,
-			space: space
-		});
+	constructor({ data, dim, x, y, width, height, render, space, isBeginAtZero = false }) {
+		super({ data, dim, x, y, width, height, render, space });
+
+		this.isBeginAtZero = isBeginAtZero;
 	}
 	
 	computeShape() {
@@ -2401,7 +2727,7 @@ class PointChart extends __WEBPACK_IMPORTED_MODULE_2__geometry__["a" /* Geometry
 
 		let intervalWidth = (this.width - 2*this.space)/(yData.length - 1);
 
-		let { minTick, maxTick } = this.computeTick(yData);
+		let { minTick, maxTick } = this.computeTick(yData, this.isBeginAtZero);
 
 		return yData.map((group, groupIndex) => {
 			return group.map((item, index) => {
@@ -2433,6 +2759,8 @@ class PointChart extends __WEBPACK_IMPORTED_MODULE_2__geometry__["a" /* Geometry
 
 				this.on(circle, obj);
 
+				circle.init({ r: 0 }).when(1000, { r: r }).start();
+
 				return circle;
 			}, this);
 		}, this).reduce((pre, cur) => pre.concat(cur), []);
@@ -2442,7 +2770,95 @@ class PointChart extends __WEBPACK_IMPORTED_MODULE_2__geometry__["a" /* Geometry
 
 
 /***/ }),
-/* 18 */
+/* 20 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_polygon__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_circle__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__geometry__ = __webpack_require__(10);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return RadarChart; });
+
+
+
+
+
+class RadarChart extends __WEBPACK_IMPORTED_MODULE_3__geometry__["a" /* Geometry */] {
+	constructor({ data, dim, x, y, width, height, render, space }) {
+		super({ data, dim, x, y, width, height, render, space });
+	}
+
+	computeShape() {
+		let dim = this.dim;
+		let rData = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["e" /* group */])(this.data, dim.r, dim.theta, dim.color);
+		if(!dim.color || dim.color === dim.theta)
+			rData = rData.map(group => group.slice(0, 1));
+
+		let { minTick, maxTick } = this.computeTick(rData, true);
+		let shapeArray = [];
+		let cx = this.x + this.width/2;
+		let cy = this.y + this.height/2;
+		let r = Math.min(this.width, this.height)/2;
+		let vertexArray = [];
+		rData.forEach((group, groupIndex, array) => {
+			let interval = 2*Math.PI/array.length;
+			let radian = 3/2*Math.PI + groupIndex*interval;
+
+			group.forEach((item, index) => {
+
+				vertexArray[index] = vertexArray[index] || [];
+				let _r = r*(item - minTick)/(maxTick - minTick);
+				let x = cx + _r*Math.cos(radian);
+				let y = cy + _r*Math.sin(radian);
+				shapeArray.push(new __WEBPACK_IMPORTED_MODULE_2__shape_circle__["a" /* Circle */]({
+					x: x,
+					y: y,
+					r: 2,
+					style: {
+						fillStyle: this.color[index],
+						renderType: 'fill'
+					}
+				}))
+				vertexArray[index].push({ x, y });
+			}, this);
+		}, this);
+
+		vertexArray.forEach((group, index) => {
+			let polygon = new __WEBPACK_IMPORTED_MODULE_1__shape_polygon__["a" /* Polygon */]({
+				vertexArray: group,
+				style: {
+					strokeStyle: this.color[index],
+					fillStyle: this.color[index],
+					lineWidth: 2,
+					globalAlpha: 0.4
+				},
+				renderType: 'fillstroke'
+			});
+
+			polygon.init({
+				vertexArray: group.map(vertex => {
+					return { x: cx, y: cy }
+				})
+			}).when(1000, {
+				vertexArray: group
+			}).start();
+
+			shapeArray.push(polygon);
+		}, this);
+
+		return shapeArray;
+	}
+
+	getShape() {
+		return this.computeShape();
+	}
+}
+
+
+
+/***/ }),
+/* 21 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2472,8 +2888,6 @@ class BezierCurve extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] 
 	}
 
 	buildPath(context) {
-		context.beginPath();
-
 		this.pointArray.forEach(({ x, y }, index, array) => {
 			if(index === 0)
 				context.moveTo(x, y);
@@ -2483,32 +2897,41 @@ class BezierCurve extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] 
 				context.bezierCurveTo(midX, preY, midX, y, x, y);
 			}
 		});
-	}
-
-	animate(currentTime, duration) {
-		let yArray = this.originalPointArray.map(({ x, y }) => y);
-		let maxY = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_util__["a" /* max */])(yArray);
-
-		this.pointArray = this.originalPointArray.map(({ x, y }) => {
-			let dY = Math.abs(maxY - y);
-			let currentY = maxY - __WEBPACK_IMPORTED_MODULE_2__util_easing__["a" /* default */].easeInCubic(null, currentTime, 0, dY, duration);
-			return {
-				x: x,
-				y: Math.max(y, currentY)
-			};
-		});
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
 	}	
 }
 
 
 
 /***/ }),
-/* 19 */
+/* 22 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shape__ = __webpack_require__(0);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return CustomShape; });
+
+
+class CustomShape extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
+	constructor({ config, style, renderType, groupId, zIndex, buildPath = function (context) {} }) {
+		super({
+			type: 'custom',
+			style: style,
+			renderType: renderType,
+			groupId: groupId,
+			zIndex: zIndex
+		});
+
+		for(let attr in config)
+			this[attr] = config[attr];
+
+		this.buildPath = buildPath;
+	}
+}
+
+
+
+/***/ }),
+/* 23 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2534,14 +2957,7 @@ class RoundRect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 		this.r = r;
 	}
 
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
-	}
-
 	buildPath(context) {
-		context.beginPath();
-
 		context.arc(this.x + this.r, this.y + this.r, this.r, Math.PI, 3/2*Math.PI);
 		context.lineTo(this.x + this.width - this.r, this.y);
 
@@ -2560,7 +2976,7 @@ class RoundRect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 
 /***/ }),
-/* 20 */
+/* 24 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2594,16 +3010,7 @@ class Sector extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 	}
 
-	animate(currentTime, duration) {
-		let currentStartRadian = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeOutBounce(null, currentTime, 0, this.originalStartRadian, duration);
-		let currentEndRadian = __WEBPACK_IMPORTED_MODULE_1__util_easing__["a" /* default */].easeOutBounce(null, currentTime, 0, this.originalEndRadian, duration);
-		this.endRadian = Math.min(currentEndRadian, this.originalEndRadian);
-		this.startRadian = Math.min(currentStartRadian, this.originalStartRadian);
-	}
-
 	buildPath(context) {
-		context.beginPath();
-
 		context.moveTo(this.x + this.innerRadius*Math.cos(this.startRadian),
 			this.y + this.innerRadius*Math.sin(this.startRadian));
 		context.lineTo(this.x + this.outerRadius*Math.cos(this.startRadian),
@@ -2615,25 +3022,19 @@ class Sector extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 			this.y + this.innerRadius*Math.sin(this.endRadian));
 
 		context.arc(this.x, this.y, this.innerRadius, this.endRadian, this.startRadian, true);
-		context.closePath();
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
 	}
 }
 
 
 
 /***/ }),
-/* 21 */,
-/* 22 */
+/* 25 */,
+/* 26 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leechart__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_leechart__ = __webpack_require__(15);
 
 
 let month = ['Jan.','Feb.','Mar.','Apr.','May','Jun.','Jul.','Aug.','Sep.','Oct.','Nov.','Dec.'];
@@ -2672,107 +3073,8 @@ doughnutChart.type('doughnut').data(data).color('name').theta('rainfall').render
 let polarChart = new __WEBPACK_IMPORTED_MODULE_0__src_leechart__["a" /* LeeChart */](document.querySelector('#polar'));
 polarChart.type('polar').data(data).color('name').theta('month').r('rainfall').render();
 
-/***/ }),
-/* 23 */,
-/* 24 */,
-/* 25 */,
-/* 26 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__util_util__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shape_line__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__shape_circle__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__shape_text__ = __webpack_require__(5);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return PolarAxis; });
-
-
-
-
-
-class PolarAxis {
-	constructor({ thetaData, rData, x, y, width, height}) {
-		this.thetaData = thetaData;
-		this.rData = rData;
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
-		this.r = Math.min(width, height)/2 - 2*12;
-	}
-
-	computeShape() {
-		let cx = this.x + this.width/2;
-		let cy = this.y + this.height/2;
-		let tickArray = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["h" /* linearTick */])(0, __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__util_util__["a" /* max */])(this.rData));
-		let shapeArray = [];
-		this.thetaData.forEach((item, index, array) => {
-			let interval = 2*Math.PI/array.length;
-
-			let radian = 3/2*Math.PI + index*interval;
-
-			let x = cx + this.r*Math.cos(radian);
-			let y = cy + this.r*Math.sin(radian);
-
-			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_1__shape_line__["a" /* Line */]({
-				pointArray: [{ x: cx, y: cy }, { x: x, y: y }],
-				style: {
-					lineWidth: 1,
-					strokeStyle: '#d9d9d9'					
-				},
-				isDashed: true
-			}));
-
-			radian += interval/2;
-			let textX = cx + (this.r + 12)*Math.cos(radian);
-			let textY = cy + (this.r + 12)*Math.sin(radian);
-
-			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_3__shape_text__["a" /* Text */]({
-				x: textX,
-				y: textY,
-				value: item,
-				rotate: 1/2*Math.PI + radian,
-				style: {
-					textAlign: 'center',
-					textBaseline: 'bottom',	
-					fillStyle: '#222222'	
-				}
-			}));
-		});
-
-		tickArray.forEach((tick, index, array) => {
-			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_2__shape_circle__["a" /* Circle */]({
-				x: cx,
-				y: cy,
-				r: index*this.r/(array.length - 1),
-				renderType: 'stroke',
-				style: {
-					lineWidth: 1,
-					strokeStyle: index === array.length - 1 ? '#d9d9d9' : '#d9d9d9'
-				}
-			}));
-
-			shapeArray.push(new __WEBPACK_IMPORTED_MODULE_3__shape_text__["a" /* Text */]({
-				x: cx ,
-				y: cy - index*this.r/(array.length - 1),
-				value: tick,
-				style: {
-					textAlign: 'center',
-					textBaseline: 'middle'
-				}
-			}));
-		}, this);
-
-		return shapeArray;
-	}
-
-	getShape() {
-		this.shapeArray = this.computeShape();
-		return this.shapeArray;
-	}
-}
-
-
+let radarChart = new __WEBPACK_IMPORTED_MODULE_0__src_leechart__["a" /* LeeChart */](document.querySelector('#radar'));
+radarChart.type('radar').data(data).color('name').theta('month').r('rainfall').render();
 
 /***/ })
 /******/ ]);

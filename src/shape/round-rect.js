@@ -18,14 +18,7 @@ class RoundRect extends Shape {
 		this.r = r;
 	}
 
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
-	}
-
 	buildPath(context) {
-		context.beginPath();
-
 		context.arc(this.x + this.r, this.y + this.r, this.r, Math.PI, 3/2*Math.PI);
 		context.lineTo(this.x + this.width - this.r, this.y);
 

@@ -14,29 +14,23 @@ class Polygon extends Shape {
 	}
 
 	buildPath(context) {
-		context.beginPath();
 		this.vertexArray.forEach(function (vertex) {
-			context.lineTo(vertext.x, vertex.y);
+			context.lineTo(vertex.x, vertex.y);
 		}, this);
-		context.closePath();
-	}
-
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
+		context.lineTo(this.vertexArray[0].x, this.vertexArray[0].y);
 	}
 }
 
 class RegularPolygon extends Polygon {
 	constructor({ x, y, r, vertexNumber, style, renderType }) {
 		super({
-			vertexArray: new Array(this.vertexNumber).fill(0).map(function (item, index) {
-				let radian = 2*Math.PI/this.vertexNumber;
+			vertexArray: new Array(vertexNumber).fill(0).map(function (item, index) {
+				let radian = 2*Math.PI/vertexNumber;
 				return {
-					x: this.x + r*Math.cos(Math.PI/2 - index*radian),
-					y: this.y - r*Math.sin(Math.PI/2 - index*radian)
+					x: x + r*Math.cos(Math.PI/2 - index*radian),
+					y: y - r*Math.sin(Math.PI/2 - index*radian)
 				}
-			}, this),
+			}),
 			style: style,
 			renderType: renderType
 		});

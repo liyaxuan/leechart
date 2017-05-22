@@ -17,37 +17,25 @@ class Line extends Shape {
 		this.pointArray = pointArray.map(({ x, y }) => {
 			return { x: x, y: y }
 		});
+
 		this.isDashed = isDashed;
 	}
 
-	animate(currentTime, duration) {
-		let yArray = this.originalPointArray.map(({ x, y }) => y);
-		let maxY = max(yArray);
-
-		this.pointArray = this.originalPointArray.map(({ x, y }) => {
-			let dY = Math.abs(maxY - y);
-			let currentY = maxY - animation.easeInCubic(null, currentTime, 0, dY, duration);
-			return {
-				x: x,
-				y: Math.max(currentY, y)
-			};
-		});
-	}
-
 	buildPath(context) {
-		context.beginPath();
-		
-		if(context.lineWidth === 1) 
-			for(let i = 0, p = this.pointArray[i], np = this.pointArray[i + 1]; i < this.pointArray.length - 1; i++) {
-				// 竖线
-				if(Math.round(p.x) === Math.round(np.x)) {
-					p.x = np.x = Math.round(np.x) + 0.5;
-				}
-				// 横线
-				if(Math.round(p.y) === Math.round(np.y)) {
-					p.y = np.y = Math.round(np.y) + 0.5;
-				}				
-			}
+		// if(context.lineWidth === 1) {
+		// 	for(let i = 0, p = this.pointArray[i], np = this.pointArray[i + 1]; i < this.pointArray.length - 1; i++) {
+		// 		// 竖线
+		// 		if(Math.round(p.x) === Math.round(np.x)) {
+		// 			p.x = np.y = Math.round(p.x) + 0.5;
+		// 		}
+		// 		// 横线
+		// 		if(Math.round(p.y) === Math.round(np.y)) {
+		// 			p.y = np.y = Math.round(p.y) + 0.5;
+		// 		}		
+		// 	}			
+		// }
+
+
 
 		this.pointArray.forEach(({ x, y }, index, array) => {
 			if(index === 0)
@@ -93,11 +81,7 @@ class Line extends Shape {
 				}				
 			}
 		}, this);
-	}
 
-	isPointIn(context, x, y) {
-		this.buildPath(context);
-		return context.isPointInPath(x, y);
 	}
 }
 
