@@ -2,14 +2,13 @@ import { Shape } from './shape';
 import animation from '../util/easing';
 
 class Sector extends Shape {
-	constructor({ x, y, innerRadius, outerRadius, startRadian, endRadian, style, renderType, groupId, zIndex, isAnimation }) {
+	constructor({ x, y, innerRadius, outerRadius, startRadian, endRadian, style, renderType, groupId, zIndex }) {
 		super({
 			type: 'sector',
 			style: style,
 			renderType: renderType,
 			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
+			zIndex: zIndex
 		});
 
 		this.x = x;

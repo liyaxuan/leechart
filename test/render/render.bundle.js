@@ -77,7 +77,7 @@
 
 
 class Shape {
-	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false, isDisplay = true }) {
+	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isDisplay = true }) {
 		this.type = type;
 
 		this.style = style;
@@ -93,7 +93,6 @@ class Shape {
 		
 		this.isDisplay = true;
 
-		this.isAnimation = isAnimation;
 		this.animationArray = [];
 
 		this._render = null;
@@ -129,29 +128,11 @@ class Shape {
 		return this;
 	}
 
-	run(index) {
+	run({ duration, config }) {
 		function toEnd(current, begin, end) {
 			return end > begin ? Math.min(current, end) : Math.max(current, end);	
 		}
 
-		/* 队列为空 */
-		let length = this.animationArray.length;
-		if(length === 0)
-			return;
-		/* i 是动画队列的索引 */
-		let i = index;
-		/* 如果已经遍历过一遍队列了, 但是是循环的 */
-		if(index > length - 1 && this.isCycle)
-			i = i%length;
-		/* 如果已经遍历过一遍队列了, 但不是循环的 */
-		else if(index > length - 1 && !this.isCycle) {
-
-			return;
-		}
-			
-		/* 取出任务执行 */
-		let { duration, config } = this.animationArray[i];
-		
 		let attrArray = [];
 		for(let attr in config) {
 			let begin = this[attr];
@@ -161,60 +142,58 @@ class Shape {
 
 		let currentTime = 0;
 		let func = __WEBPACK_IMPORTED_MODULE_0__util_easing__["a" /* default */].easeInOutQuad;
-		let timer = setInterval((function () {
-			if(currentTime > duration) {
-				clearInterval(timer);		
+
+		return new Promise((function (resolve) {
+			let timer = setInterval((function () {
+				if(currentTime > duration) {
+					clearInterval(timer);		
+					attrArray.forEach(({ attr, begin, end }) => {
+						if(Array.isArray(begin) && Array.isArray(end)) {
+							this[attr] = end.map(({ x, y }) => {
+								return { x, y }
+							});
+						}
+						else
+							this[attr] = end;
+					});
+					this._render.requestRender();
+					resolve();
+					return;
+				}
+					
 				attrArray.forEach(({ attr, begin, end }) => {
 					if(Array.isArray(begin) && Array.isArray(end)) {
-						this[attr] = end.map(({ x, y }) => {
-							return { x, y }
+						let current = begin.map((item, index) => {
+
+							let x = func(null, currentTime, item.x, end[index].x - item.x, duration);
+							let y = func(null, currentTime, item.y, end[index].y - item.y, duration);
+
+							x = toEnd(x, item.x, end[index].x);
+							y = toEnd(y, item.y, end[index].y);
+
+							return { x, y };
 						});
+
+						this[attr] = current;
 					}
-					else
-						this[attr] = end;
-				});
+					/* 单值 x y width height r */
+					else {
+						let current = func(null, currentTime, begin, end - begin, duration);
+						this[attr] = toEnd(current, begin, end);					
+					}	
+				}, this);
 
-				this.run(index + 1);
-				return;
-			}
-				
-			attrArray.forEach(({ attr, begin, end }) => {
-				if(Array.isArray(begin) && Array.isArray(end)) {
-					let current = begin.map((item, index) => {
-
-						let x = func(null, currentTime, item.x, end[index].x - item.x, duration);
-						let y = func(null, currentTime, item.y, end[index].y - item.y, duration);
-
-						x = toEnd(x, item.x, end[index].x);
-						y = toEnd(y, item.y, end[index].y);
-
-						return { x, y };
-					});
-
-					this[attr] = current;
-				}
-				/* 单值 x y width height r */
-				else {
-					let current = func(null, currentTime, begin, end - begin, duration);
-					this[attr] = toEnd(current, begin, end);					
-				}	
-			}, this);
-
-			this._render.requestRender();
-			currentTime += 1000/60;
-		}).bind(this), 1000/60);		
+				this._render.requestRender();
+				currentTime += 1000/60;
+			}).bind(this), 1000/60);
+		}).bind(this)); 
 	}
 
-	start(isCycle = false) {
-		this.isCycle = isCycle;
-		this.run(0);
-
-		return this;
-	}
-
-	stop() {
-		this.isCycle = false;
-		return this;
+	start() {
+		let self = this;
+		return this.animationArray.reduce((pre, cur) => {
+			return pre.then(() => self.run(cur));
+		}, Promise.resolve());
 	}
 
 	addEventListener(eventType, callback) {
@@ -618,51 +597,43 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 
 let leeRender = new __WEBPACK_IMPORTED_MODULE_0__src_leerender__["a" /* LeeRender */](document.querySelector('#leerender'));
-// let rect = new Rect({
-// 	x: 0,
-// 	y: 0,
-// 	width: 25,
-// 	height: 25,
-// 	style: {
-// 		fillStyle: 'yellow'
-// 	}
-// });
 
-// let circle = new Circle({
-// 	x: 300,
-// 	y: 100,	
-// 	r: 25,
-// 	style: {
-// 		fillStyle: 'red'
-// 	}
-// })
-
-// circle.when(1000, {
-// 	r: 100
-// })
-
-// rect.when(1000, {
-// 	width: 375,
-// 	height: 200
-// }, function () {
-// 	circle.start(false);
-// }).start(false);
-
-
-// leeRender.addShape(circle);
-// leeRender.addShape(rect);
-
-
-let text = new __WEBPACK_IMPORTED_MODULE_4__src_shape_text__["a" /* Text */]({
-	x: 50,
-	y: 50,
-	value: '123456',
+let rect = new __WEBPACK_IMPORTED_MODULE_3__src_shape_rect__["a" /* Rect */]({
+	x: 0,
+	y: 0,
+	width: 25,
+	height: 25,
 	style: {
-		fontSize: 20
+		fillStyle: 'yellow'
 	}
 });
+rect.when(1000, {
+	width: 500,
+	height: 500
+}).when(1000, {
+	width: 375,
+	height: 200	
+}).start();
 
-leeRender.addShape(text);
+
+
+rect.addEventListener('click', function (context, x, y) {
+	console.log('click', x, y);
+});
+
+rect.addEventListener('mousemove', function (context, x, y) {
+	console.log('mousemove', x, y);
+});
+
+rect.addEventListener('mouseover', function (context, x, y) {
+	console.log('mouseover', x, y);
+});
+
+rect.addEventListener('mouseout', function (context, x, y) {
+	console.log('mouseout', x, y);
+});
+
+leeRender.addShape(rect);
 leeRender.render();
 
 /***/ }),
@@ -801,14 +772,13 @@ class Text extends __WEBPACK_IMPORTED_MODULE_1__shape__["a" /* Shape */] {
 
 
 class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
-	constructor({ x, y, width, height, style, renderType, groupId, zIndex, isAnimation }) {
+	constructor({ x, y, width, height, style, renderType, groupId, zIndex }) {
 		super({
 			type: 'rect',
 			style: style,
 			renderType: renderType,
 			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
+			zIndex: zIndex
 		});
 
 		this.x = x;
@@ -839,14 +809,13 @@ class Rect extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 
 
 class Circle extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
-	constructor({ x, y, r, style, renderType, groupId, zIndex, isAnimation }) {
+	constructor({ x, y, r, style, renderType, groupId, zIndex }) {
 		super({
 			type: 'circle',
 			style: style,
 			renderType: renderType,
 			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
+			zIndex: zIndex
 		});
 
 		this.x = x;
@@ -980,6 +949,27 @@ class LeeRender {
 		this.isDirty = true;
 	}
 
+	clear() {
+		this.shapeLayer.forEach((layer, index, array) => {
+			layer.forEach((shape, index, array) => {
+				array[index] = null;
+			});
+			array[index] = null;
+		});
+
+		this.shapeLayer = [];
+
+		for(let group in this.shapeGroup) {
+			this.shapeGroup[group].forEach((shape, index, array) => {
+				array[index] = null;
+			})
+
+			delete this.shapeGroup[group];		
+		}
+
+		context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	}
+
 	render() {
 		let context = this.context;
 
@@ -1009,14 +999,13 @@ class LeeRender {
 
 
 class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
-	constructor({ pointArray, isDashed = false, style, groupId, zIndex, isAnimation }) {
+	constructor({ pointArray, isDashed = false, style, groupId, zIndex }) {
 		super({
 			type: 'line',
 			style: style,
 			renderType: 'stroke',
 			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
+			zIndex: zIndex
 		});
 
 		this.originalPointArray = pointArray;
@@ -1028,22 +1017,27 @@ class Line extends __WEBPACK_IMPORTED_MODULE_0__shape__["a" /* Shape */] {
 	}
 
 	buildPath(context) {
-		// if(context.lineWidth === 1) {
-		// 	for(let i = 0, p = this.pointArray[i], np = this.pointArray[i + 1]; i < this.pointArray.length - 1; i++) {
-		// 		// 竖线
-		// 		if(Math.round(p.x) === Math.round(np.x)) {
-		// 			p.x = np.y = Math.round(p.x) + 0.5;
-		// 		}
-		// 		// 横线
-		// 		if(Math.round(p.y) === Math.round(np.y)) {
-		// 			p.y = np.y = Math.round(p.y) + 0.5;
-		// 		}		
-		// 	}			
-		// }
+		let pointArray = this.pointArray.map(({ x, y }) => {
+			return { x, y }
+		});
 
+		if(context.lineWidth === 1 && this.pointArray.length === 2) {
+			let sp = this.pointArray[0];
+			let ep = this.pointArray[1];
 
+			// 竖线
+			if(sp.x === ep.x && sp.x%1 !== 0.5) {
+				let x = Math.round(sp.x) + 0.5;
+				pointArray = [{ x: x, y: sp.y },{ x: x, y: ep.y }];
+			}
+			// 横线
+			if(sp.y === ep.y && sp.y%1 !== 0.5) {
+				let y = Math.round(sp.y) + 0.5;
+				pointArray = [{ x: sp.x, y: y },{ x: ep.x, y: y }];
+			}			
+		}
 
-		this.pointArray.forEach(({ x, y }, index, array) => {
+		pointArray.forEach(({ x, y }, index, array) => {
 			if(index === 0)
 				context.moveTo(x, y);
 			else {

@@ -1,6 +1,6 @@
-import { LeeRender } from '../src/leerender';
-import { Rect } from '../src/shape/rect';
-import { Text } from '../src/shape/text';
+import { LeeRender } from '../../src/leerender';
+import { Rect } from '../../src/shape/rect';
+import { Text } from '../../src/shape/text';
 
 let leeRender = new LeeRender(document.querySelector('#leerender'));
 let context = leeRender.getContext();

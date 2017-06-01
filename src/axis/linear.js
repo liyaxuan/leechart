@@ -23,15 +23,6 @@ class LinearAxis {
 		this.bodyHeight = bodyHeight;
 	
 		this.render = render;
-
-		this.update();
-	}
-
-	update() {
-		this.tickArray = this.computeTick();
-
-		this.fit();
-		this.shapeArray = this.computeShape();		
 	}
 
 	/* 有 data 就可以计算 tick, 不受文本 rotate 的影响 */
@@ -84,6 +75,7 @@ class LinearAxis {
 
 	/* 计算 label 的旋转 */
 	fit() {
+		this.tickArray = this.computeTick();
 		let context = this.render.getContext();
 
 		let limitedLabelWidth = 0;
@@ -260,7 +252,9 @@ class LinearAxis {
 	}
 
 	getShape() {
-		this.update();
+		this.tickArray = this.computeTick();
+		this.fit();
+		this.shapeArray = this.computeShape();		
 		return this.shapeArray;
 	}
 }

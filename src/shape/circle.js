@@ -2,14 +2,13 @@ import { Shape } from './shape';
 import animation from '../util/easing';
 
 class Circle extends Shape {
-	constructor({ x, y, r, style, renderType, groupId, zIndex, isAnimation }) {
+	constructor({ x, y, r, style, renderType, groupId, zIndex }) {
 		super({
 			type: 'circle',
 			style: style,
 			renderType: renderType,
 			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
+			zIndex: zIndex
 		});
 
 		this.x = x;

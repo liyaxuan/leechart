@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>leechart demo</title>
+		<link rel="stylesheet" href="lib/codemirror/codemirror.css">
+		<link rel="stylesheet" href="lib/codemirror/theme/monokai.css">
+		<link rel="stylesheet" href="lib/iconfont/iconfont.css">
+		<style>
+			html {
+				height: 100%;
+			}
+
+			body {
+				margin: 0;
+				height: 100%;
+			}
+
+			.container {
+				height: 100%;
+
+				display: flex;
+				flex-direction: column;		
+			}
+
+			.header {
+				height: 63px;
+				line-height: 63px;
+				padding-left: 32px;
+				font-size: 20px;
+				color: #3f3f3f;
+				border-bottom: 1px solid #ededed;
+				
+			}
+
+			.body {
+				flex-grow: 1;
+				display: flex;
+				align-items: stretch;
+			}
+
+			.nav {
+				box-sizing: border-box;
+				width: 256px;
+				padding: 16px 0;
+				background-color: #42495b;
+				font-size: 14px;
+			}
+
+			.nav .item {
+				color: #b9bdc9;
+				height: 32px;
+				line-height: 32px;
+				padding: 0 32px;
+				cursor: pointer;
+			}
+
+			.nav .item:hover {
+				color: #ffffff;
+			}
+
+			.fl { float: left; }
+			.fr { float: right; }
+			.cf { clear: both; }
+			
+			.codemirror-container {
+				width: 511px;
+				border-right: 1px solid #ededed;
+				display: flex;
+				flex-direction: column;
+				position: relative;
+			}
+
+			.codemirror-header {
+				box-sizing: border-box;
+				width: 100%;
+				height: 48px;
+				line-height: 48px;
+				padding: 0 32px;
+				border-bottom: 1px solid #ededed;
+				position: absolute;
+				top: 0;
+				font-size: 14px;
+			}
+
+			.codemirror-body {
+				box-sizing: border-box;
+				height: 100%;
+				padding-top: 48px;
+			}
+
+			.CodeMirror {
+				height: 100%;
+			}
+
+			.demo-container {
+				flex-grow: 1;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div class="container">
+			<div class="header">LeeChart 图表示例</div>
+			<div class="body">
+				<div class="nav">
+					<div class="item type-select">散点图</div>
+					<div class="item type-select">折线图</div>
+					<div class="item type-select">柱状图</div>
+					<div class="item type-select">饼图</div>
+					<div class="item type-select">环形图</div>
+					<div class="item type-select">南丁格尔玫瑰图</div>
+					<div class="item type-select">雷达图</div>
+				</div>
+				<div class="codemirror-container">
+					<div class="codemirror-header">
+						<div class="fl">代码</div>
+						<div class="run-button fr" v-on:click="run">
+							<span class="iconfont">&#xe87c;</span>
+							运行
+						</div>
+						<div class="cf"></div>
+					</div>
+					<div class="codemirror-body" contenteditable></div>
+				</div>
+				<iframe class="demo-container" src="bar.html" frameborder="0"></iframe>
+			</div>			
+		</div>		
+		<script src="lib/vue/vue.js"></script>
+		<script src="lib/vue/vue-resource.js"></script>
+		<script src="lib/codemirror/codemirror.js"></script>
+		<script src="lib/codemirror/mode/xml.js"></script>
+		<script src="lib/codemirror/mode/css.js"></script>
+		<script src="lib/codemirror/mode/javascript.js"></script>
+		<script src="lib/codemirror/mode/htmlmixed.js"></script>
+		<script>
+			let type = 'bar';
+			let typeArray = ['point', 'line', 'bar', 'pie', 'doughnut', 'polar', 'radar'];
+			let iframe = document.querySelector('iframe');
+
+			function fetchHTML() {
+				return fetch(`/${type}.html`).then(res => res.text()).then((html => {
+					editor.setValue(html);
+					return Promise.resolve(html);
+				}).bind(this));					
+			}
+
+			function run() {
+				var doc = iframe.contentDocument || iframe.contentWindow.document;
+		     	doc.open();
+		    	doc.write(editor.getValue());
+		    	doc.close();				
+			}
+
+			Array.from(document.querySelectorAll('.type-select')).forEach((item, index) => {
+				item.onclick = function () {
+					type = typeArray[index];
+					fetchHTML().then(html => run());		
+				}
+			})
+
+			document.querySelector('.run-button').onclick = run;
+
+			var editor =  CodeMirror(document.querySelector('.codemirror-body'), {
+				lineNumbers: true,
+				theme: 'monokai',
+				mode: 'text/html',
+				value: '',
+				lineWrapping: true
+			})
+
+			fetchHTML();
+
+		</script>
+	</body>
+</html>

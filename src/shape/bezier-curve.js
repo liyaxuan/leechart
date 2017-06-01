@@ -3,14 +3,13 @@ import { max, min } from '../util/util';
 import animation from '../util/easing';
 
 class BezierCurve extends Shape {
-	constructor({ pointArray, style, groupId, zIndex, isAnimation }) {
+	constructor({ pointArray, style, groupId, zIndex }) {
 		super({
 			type: 'bezier-curve',
 			style: style,
 			renderType: 'stroke',
 			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
+			zIndex: zIndex
 		});
 
 		this.originalPointArray = pointArray;

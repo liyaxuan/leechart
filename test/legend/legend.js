@@ -1,7 +1,7 @@
-import { LeeRender } from '../src/leerender';
-import { Rect } from '../src/shape/rect';
-import { Legend } from '../src/legend/legend';
-import STYLE from '../src/theme/macaron';
+import { LeeRender } from '../../src/leerender';
+import { Rect } from '../../src/shape/rect';
+import { Legend } from '../../src/legend/legend';
+import STYLE from '../../src/theme/macaron';
 
 let leeRender = new LeeRender(document.querySelector('#leerender'));
 let legend = new Legend({

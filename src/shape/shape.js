@@ -1,7 +1,7 @@
 import animation from '../util/easing';
 
 class Shape {
-	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isAnimation = false, isDisplay = true }) {
+	constructor({ type, style, renderType = 'fill', groupId, zIndex = 0, isDisplay = true }) {
 		this.type = type;
 
 		this.style = style;
@@ -17,7 +17,6 @@ class Shape {
 		
 		this.isDisplay = true;
 
-		this.isAnimation = isAnimation;
 		this.animationArray = [];
 
 		this._render = null;
@@ -53,29 +52,11 @@ class Shape {
 		return this;
 	}
 
-	run(index) {
+	run({ duration, config }) {
 		function toEnd(current, begin, end) {
 			return end > begin ? Math.min(current, end) : Math.max(current, end);	
 		}
 
-		/* 队列为空 */
-		let length = this.animationArray.length;
-		if(length === 0)
-			return;
-		/* i 是动画队列的索引 */
-		let i = index;
-		/* 如果已经遍历过一遍队列了, 但是是循环的 */
-		if(index > length - 1 && this.isCycle)
-			i = i%length;
-		/* 如果已经遍历过一遍队列了, 但不是循环的 */
-		else if(index > length - 1 && !this.isCycle) {
-
-			return;
-		}
-			
-		/* 取出任务执行 */
-		let { duration, config } = this.animationArray[i];
-		
 		let attrArray = [];
 		for(let attr in config) {
 			let begin = this[attr];
@@ -85,60 +66,58 @@ class Shape {
 
 		let currentTime = 0;
 		let func = animation.easeInOutQuad;
-		let timer = setInterval((function () {
-			if(currentTime > duration) {
-				clearInterval(timer);		
+
+		return new Promise((function (resolve) {
+			let timer = setInterval((function () {
+				if(currentTime > duration) {
+					clearInterval(timer);		
+					attrArray.forEach(({ attr, begin, end }) => {
+						if(Array.isArray(begin) && Array.isArray(end)) {
+							this[attr] = end.map(({ x, y }) => {
+								return { x, y }
+							});
+						}
+						else
+							this[attr] = end;
+					});
+					this._render.requestRender();
+					resolve();
+					return;
+				}
+					
 				attrArray.forEach(({ attr, begin, end }) => {
 					if(Array.isArray(begin) && Array.isArray(end)) {
-						this[attr] = end.map(({ x, y }) => {
-							return { x, y }
+						let current = begin.map((item, index) => {
+
+							let x = func(null, currentTime, item.x, end[index].x - item.x, duration);
+							let y = func(null, currentTime, item.y, end[index].y - item.y, duration);
+
+							x = toEnd(x, item.x, end[index].x);
+							y = toEnd(y, item.y, end[index].y);
+
+							return { x, y };
 						});
+
+						this[attr] = current;
 					}
-					else
-						this[attr] = end;
-				});
+					/* 单值 x y width height r */
+					else {
+						let current = func(null, currentTime, begin, end - begin, duration);
+						this[attr] = toEnd(current, begin, end);					
+					}	
+				}, this);
 
-				this.run(index + 1);
-				return;
-			}
-				
-			attrArray.forEach(({ attr, begin, end }) => {
-				if(Array.isArray(begin) && Array.isArray(end)) {
-					let current = begin.map((item, index) => {
-
-						let x = func(null, currentTime, item.x, end[index].x - item.x, duration);
-						let y = func(null, currentTime, item.y, end[index].y - item.y, duration);
-
-						x = toEnd(x, item.x, end[index].x);
-						y = toEnd(y, item.y, end[index].y);
-
-						return { x, y };
-					});
-
-					this[attr] = current;
-				}
-				/* 单值 x y width height r */
-				else {
-					let current = func(null, currentTime, begin, end - begin, duration);
-					this[attr] = toEnd(current, begin, end);					
-				}	
-			}, this);
-
-			this._render.requestRender();
-			currentTime += 1000/60;
-		}).bind(this), 1000/60);		
+				this._render.requestRender();
+				currentTime += 1000/60;
+			}).bind(this), 1000/60);
+		}).bind(this)); 
 	}
 
-	start(isCycle = false) {
-		this.isCycle = isCycle;
-		this.run(0);
-
-		return this;
-	}
-
-	stop() {
-		this.isCycle = false;
-		return this;
+	start() {
+		let self = this;
+		return this.animationArray.reduce((pre, cur) => {
+			return pre.then(() => self.run(cur));
+		}, Promise.resolve());
 	}
 
 	addEventListener(eventType, callback) {

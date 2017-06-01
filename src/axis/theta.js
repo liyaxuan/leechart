@@ -13,14 +13,17 @@ class ThetaAxis {
 		this.y = y;
 		this.width = width;
 		this.height = height;
-		this.r = Math.min(width, height)/2 - 2*12;
+		
 
 		this.tickCount = tickCount;
 	}
 
 	computeShape() {
+
 		let cx = this.x + this.width/2;
 		let cy = this.y + this.height/2;
+		let r = Math.min(this.width, this.height)/2 - 2*12;
+
 		let tickArray = linearTick(0, max(this.rData), this.tickCount);
 		let shapeArray = [];
 		this.thetaData.forEach((item, index, array) => {
@@ -28,8 +31,8 @@ class ThetaAxis {
 
 			let radian = 3/2*Math.PI + index*interval;
 
-			let x = cx + this.r*Math.cos(radian);
-			let y = cy + this.r*Math.sin(radian);
+			let x = cx + r*Math.cos(radian);
+			let y = cy + r*Math.sin(radian);
 
 			shapeArray.push(new Line({
 				pointArray: [{ x: cx, y: cy }, { x: x, y: y }],
@@ -41,8 +44,8 @@ class ThetaAxis {
 			}));
 			if(this.type === 'polar')
 				radian += interval/2;
-			let textX = cx + (this.r + 12)*Math.cos(radian);
-			let textY = cy + (this.r + 12)*Math.sin(radian);
+			let textX = cx + (r + 12)*Math.cos(radian);
+			let textY = cy + (r + 12)*Math.sin(radian);
 
 			shapeArray.push(new Text({
 				x: textX,
@@ -63,7 +66,7 @@ class ThetaAxis {
 			shapeArray.push(new T({
 				x: cx,
 				y: cy,
-				r: index*this.r/(array.length - 1),
+				r: index*r/(array.length - 1),
 				vertexNumber: this.thetaData.length,
 				renderType: 'stroke',
 				style: {
@@ -74,7 +77,7 @@ class ThetaAxis {
 
 			shapeArray.push(new Text({
 				x: cx ,
-				y: cy - index*this.r/(array.length - 1),
+				y: cy - index*r/(array.length - 1),
 				value: tick,
 				style: {
 					textAlign: 'center',

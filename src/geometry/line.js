@@ -7,8 +7,8 @@ import { CustomShape } from '../shape/custom-shape';
 import { Geometry } from './geometry'
 
 class LineChart extends Geometry {
-	constructor({ data, dim, x, y, width, height, render, space, isBezierCurve = false, isArea = true, isStacked = false, isBeginAtZero = false }) {
-		super({ data, dim, x, y, width, height, render, space });
+	constructor({ data, color, x, y, width, height, render, space, isBezierCurve = true, isArea = true, isStacked = false, isBeginAtZero = false }) {
+		super({ data, color, x, y, width, height, render, space });
 
 		this.isBezierCurve = isBezierCurve;
 		this.isArea = isArea;
@@ -16,22 +16,21 @@ class LineChart extends Geometry {
 	}
 
 	computeShape() {
-		let dim = this.dim;
-		let { xData, yData, colorData } = this.computeData();
+
 
 		let space = this.space;
-		let intervalWidth = (this.width - 2*space)/(yData.length - 1);
+		let intervalWidth = (this.width - 2*space)/(this.data.length - 1);
 
-		let { minTick, maxTick } = this.computeTick(yData, this.isBeginAtZero);
+		let { minTick, maxTick } = this.computeTick(this.data, this.isBeginAtZero);
 		if(this.isStacked)
-			maxTick = this.computeTick(yData.map(group => sum(group)), this.isBeginAtZero);
+			maxTick = this.computeTick(this.data.map(group => sum(group)), this.isBeginAtZero);
 
 		let T = this.isBezierCurve ? BezierCurve : Line;
 
 		let shapeArray = [];
 		let pointGroup = [];
 
-		yData.forEach((group, groupIndex) => {
+		this.data.forEach((group, groupIndex) => {
 
 			group.forEach((item, index) => {
 				let x = this.x + space + groupIndex*intervalWidth;
@@ -51,15 +50,6 @@ class LineChart extends Geometry {
 					zIndex: 2,
 					isAnimation: true
 				});
-
-				let obj = {
-					[dim.x]: xData[groupIndex],
-					[dim.y]: yData[groupIndex][index]			
-				};
-				if(colorData)
-					obj[dim.color] = colorData[index];
-
-				this.on(circle, obj);
 
 				shapeArray.push(circle);
 

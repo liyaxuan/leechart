@@ -23,10 +23,6 @@ class ToolTip {
 		this.isDisplay = false;
 	}
 
-	color(color) {
-		this.color = color;
-	}
-
 	show() {
 		if(!this.isDisplay) {
 			this.isDisplay = true;

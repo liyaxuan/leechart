@@ -1,8 +1,8 @@
-import { LeeRender } from '../src/leerender';
+import { LeeRender } from '../../src/leerender';
 
-import { LinearAxis } from '../src/axis/linear';
-import { ThetaAxis } from '../src/axis/theta';
-import { Legend } from '../src/legend/legend';
+import { LinearAxis } from '../../src/axis/linear';
+import { ThetaAxis } from '../../src/axis/theta';
+import { Legend } from '../../src/legend/legend';
 
 let data = ['first class', 'second class', 'third class', 'forth class', 'fifth class'].map(function (item) {
 	return {

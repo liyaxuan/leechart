@@ -109,6 +109,27 @@ export class LeeRender {
 		this.isDirty = true;
 	}
 
+	clear() {
+		this.shapeLayer.forEach((layer, index, array) => {
+			layer.forEach((shape, index, array) => {
+				array[index] = null;
+			});
+			array[index] = null;
+		});
+
+		this.shapeLayer = [];
+
+		for(let group in this.shapeGroup) {
+			this.shapeGroup[group].forEach((shape, index, array) => {
+				array[index] = null;
+			})
+
+			delete this.shapeGroup[group];		
+		}
+
+		context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	}
+
 	render() {
 		let context = this.context;
 

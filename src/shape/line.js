@@ -3,14 +3,13 @@ import { max, min } from '../util/util';
 import animation from '../util/easing';
 
 class Line extends Shape {
-	constructor({ pointArray, isDashed = false, style, groupId, zIndex, isAnimation }) {
+	constructor({ pointArray, isDashed = false, style, groupId, zIndex }) {
 		super({
 			type: 'line',
 			style: style,
 			renderType: 'stroke',
 			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
+			zIndex: zIndex
 		});
 
 		this.originalPointArray = pointArray;
@@ -22,22 +21,27 @@ class Line extends Shape {
 	}
 
 	buildPath(context) {
-		// if(context.lineWidth === 1) {
-		// 	for(let i = 0, p = this.pointArray[i], np = this.pointArray[i + 1]; i < this.pointArray.length - 1; i++) {
-		// 		// 竖线
-		// 		if(Math.round(p.x) === Math.round(np.x)) {
-		// 			p.x = np.y = Math.round(p.x) + 0.5;
-		// 		}
-		// 		// 横线
-		// 		if(Math.round(p.y) === Math.round(np.y)) {
-		// 			p.y = np.y = Math.round(p.y) + 0.5;
-		// 		}		
-		// 	}			
-		// }
+		let pointArray = this.pointArray.map(({ x, y }) => {
+			return { x, y }
+		});
 
+		if(context.lineWidth === 1 && this.pointArray.length === 2) {
+			let sp = this.pointArray[0];
+			let ep = this.pointArray[1];
 
+			// 竖线
+			if(sp.x === ep.x && sp.x%1 !== 0.5) {
+				let x = Math.round(sp.x) + 0.5;
+				pointArray = [{ x: x, y: sp.y },{ x: x, y: ep.y }];
+			}
+			// 横线
+			if(sp.y === ep.y && sp.y%1 !== 0.5) {
+				let y = Math.round(sp.y) + 0.5;
+				pointArray = [{ x: sp.x, y: y },{ x: ep.x, y: y }];
+			}			
+		}
 
-		this.pointArray.forEach(({ x, y }, index, array) => {
+		pointArray.forEach(({ x, y }, index, array) => {
 			if(index === 0)
 				context.moveTo(x, y);
 			else {

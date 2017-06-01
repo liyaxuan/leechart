@@ -4,7 +4,7 @@ import { Text } from '../shape/text';
 import { color } from '../theme/macaron';
 import { max, sum } from '../util/util';
 
-let r = 6;	
+let r = 3;	
 let margin = 6;
 let padding = 12;
 let fontSize = 12;
@@ -12,8 +12,9 @@ let fontSize = 12;
 class Legend {
 	/* 水平方向 left center right */
 	/* 竖直方向 top middle bottom */
-	constructor({ data, x = 0, y = 0, width, height, position = 'top', align = 'center', render }) {
+	constructor({ data, color, x = 0, y = 0, width, height, position = 'top', align = 'center', render }) {
 		this.data = data;
+		this.color = color;
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -22,10 +23,6 @@ class Legend {
 		this.position = position;
 
 		this.render = render;
-	}
-
-	color(color) {
-		this.color = color;
 	}
 
 	computeLength() {

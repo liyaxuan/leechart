@@ -2,14 +2,13 @@ import { Shape } from './shape';
 import animation from '../util/easing';
 
 class Rect extends Shape {
-	constructor({ x, y, width, height, style, renderType, groupId, zIndex, isAnimation }) {
+	constructor({ x, y, width, height, style, renderType, groupId, zIndex }) {
 		super({
 			type: 'rect',
 			style: style,
 			renderType: renderType,
 			groupId: groupId,
-			zIndex: zIndex,
-			isAnimation: isAnimation
+			zIndex: zIndex
 		});
 
 		this.x = x;

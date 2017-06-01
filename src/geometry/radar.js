@@ -4,23 +4,19 @@ import { Circle } from '../shape/circle';
 import { Geometry } from './geometry';
 
 class RadarChart extends Geometry {
-	constructor({ data, dim, x, y, width, height, render, space }) {
-		super({ data, dim, x, y, width, height, render, space });
+	constructor({ data, color, x, y, width, height, render, space }) {
+		super({ data, color, x, y, width, height, render, space });
 	}
 
 	computeShape() {
-		let dim = this.dim;
-		let rData = group(this.data, dim.r, dim.theta, dim.color);
-		if(!dim.color || dim.color === dim.theta)
-			rData = rData.map(group => group.slice(0, 1));
 
-		let { minTick, maxTick } = this.computeTick(rData, true);
+		let { minTick, maxTick } = this.computeTick(this.data, true);
 		let shapeArray = [];
 		let cx = this.x + this.width/2;
 		let cy = this.y + this.height/2;
 		let r = Math.min(this.width, this.height)/2;
 		let vertexArray = [];
-		rData.forEach((group, groupIndex, array) => {
+		this.data.forEach((group, groupIndex, array) => {
 			let interval = 2*Math.PI/array.length;
 			let radian = 3/2*Math.PI + groupIndex*interval;
 

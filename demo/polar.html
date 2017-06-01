@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>polar</title>
+		<style>
+			html, body {
+				margin: 0;
+				padding: 0;
+				height: 100%
+			}
+
+			#chart {
+				width: 100%;
+				height: 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="chart"></div>
+		<script src="lib/leechart/leechart.js"></script>
+		<script id="userscript">
+			var container = document.querySelector('#chart');
+			var width = container.offsetWidth;
+			var height = container.offsetHeight;
+
+			chart = new LeeChart(document.querySelector('#chart'), { width, height });
+
+			fetch('/data/rainfall.json').then(res => {
+				return res.json();			
+			}).then(data => {
+				chart.type('polar').data(data).color('city').theta('month').r('rainfall').render();
+			}).catch(err => console.log(err));
+		</script>
+	</body>
+</html>
