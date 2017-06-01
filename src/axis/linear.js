@@ -3,7 +3,7 @@ import { Line } from '../shape/line';
 import { Text } from '../shape/text';
 
 class LinearAxis {
-	constructor({ data, type = 'linear', chartType, x = 0, y = 0, width, height, bodyHeight, bodyWidth, position = 'left', space = 0, isBeginAtZero = false, isGrid = true, render }) {
+	constructor({ data, type = 'linear', chartType, x = 0, y = 0, width, height, bodyHeight, bodyWidth, position = 'left', space = 0, isBeginAtZero = false, isGrid = true, isReverse = false, render }) {
 		this.data = data;
 		/* 数据相关的 */
 
@@ -18,6 +18,7 @@ class LinearAxis {
 		this.space = space;
 		this.isGrid = isGrid;
 		this.isBeginAtZero = isBeginAtZero;
+		this.isReverse = isReverse;
 
 		this.bodyWidth = bodyWidth;
 		this.bodyHeight = bodyHeight;
@@ -27,7 +28,6 @@ class LinearAxis {
 
 	/* 有 data 就可以计算 tick, 不受文本 rotate 的影响 */
 	computeTick() {
-
 		let tickArray = [];
 
 		if(this.type === 'linear') {
@@ -66,6 +66,9 @@ class LinearAxis {
 				position = this.space + index*intervalWidth
 			}
 
+			if(this.isReverse)
+				position = length - position;
+
 			return {
 				value: tick,
 				position: position
@@ -75,11 +78,11 @@ class LinearAxis {
 
 	/* 计算 label 的旋转 */
 	fit() {
-		this.tickArray = this.computeTick();
+		let tickArray = this.computeTick();
 		let context = this.render.getContext();
 
 		let limitedLabelWidth = 0;
-		let maxLabelWidth = max(this.tickArray.map(tick => context.measureText(tick.value).width ));
+		let maxLabelWidth = max(tickArray.map(tick => context.measureText(tick.value).width ));
 		
 		/* 水平坐标轴的限制在于宽度 */
 		if(/top|bottom/.test(this.position)) {
@@ -92,10 +95,10 @@ class LinearAxis {
 			let leftWidth = this.width;
 			if(this.isSpace) {
 				/* 剔除了两端的距离, 将剩下的部分平分 */
-				leftWidth = this.width - this.width/(this.tickArray.length + 1)
+				leftWidth = this.width - this.width/(tickArray.length + 1)
 			}
 			/* 设刻度之间的最小距离为4 */
-			limitedLabelWidth = (leftWidth - 4*(this.tickArray.length - 1))/this.tickArray.length;
+			limitedLabelWidth = (leftWidth - 4*(tickArray.length - 1))/tickArray.length;
 
 			if(maxLabelWidth > limitedLabelWidth) {
 				rotate = Math.acos(limitedLabelWidth/maxLabelWidth);
@@ -104,7 +107,7 @@ class LinearAxis {
 			this.rotate = rotate;
 
 			/* 接下来处理高度, 根据需要进行拓高 */
-			let height = this.tickArray.reduce(function (pre, cur) {
+			let height = tickArray.reduce(function (pre, cur) {
 				/* 每个在 rotate 角度下旋转的文本 */
 				let { height } = getTextBoundingRect({
 					context: context,
@@ -129,6 +132,7 @@ class LinearAxis {
 	}
 
 	computeShape() {
+		let tickArray = this.computeTick();
 		let lineStyle = {
 			strokeStyle: '#d9d9d9',
 			lineWidth: 1
@@ -138,29 +142,46 @@ class LinearAxis {
 		/* 水平坐标轴 */
 		if(/top|bottom/.test(this.position)) {
 			/* 轴线 */
+			let sx = this.x;
+			let sy = this.y;
+			let ex = this.x + this.width;
+			let ey = sy;
+			if(this.position === 'top') {
+				ey = sy = this.y + this.height;
+			}
 
 			shapeArray.push(new Line({
-				pointArray: [{ x: this.x, y: this.y }, { x: this.x + this.width, y: this.y }],
+				pointArray: [{ x: sx, y: sy }, { x: ex, y: ey }],
 				style: lineStyle,
 				zIndex: 1
 			}));
 
-			this.tickArray.forEach((tick) => {
-				let x = this.x + tick.position;
-				let y = this.y;
+			tickArray.forEach((tick) => {
+				let sx = this.x + tick.position;
+				let sy = this.y;
+
+				let ex = sx;
+				let ey = sy + 8;
+				if(this.position === 'top') {
+					sy = this.y + this.height;
+					ey = sy - 8;
+				}
+					
 				/* 刻度线 */
 				shapeArray.push(new Line({
-					pointArray: [{ x: x, y: y }, { x: x, y: y + 8 }],
+					pointArray: [{ x: sx, y: sy }, { x: ex, y: ey }],
 					style: lineStyle,
 				}));
 
 				/* label */
+
+
 				shapeArray.push(new Text({
-					x: this.x + tick.position,
-					y: this.y + 12,
+					x: sx,
+					y: this.position === 'bottom' ? sy + 12 : sy - 12,
 					value: tick.value,
 					style: {
-						textBaseline: 'top',
+						textBaseline: this.position === 'bottom' ? 'top' : 'bottom',
 						textAlign: this.rotate === 0 ? 'center' : 'right'						
 					},
 					rotate: -1*this.rotate,
@@ -169,19 +190,25 @@ class LinearAxis {
 
 			/* 网格 */
 			if(this.isGrid) {
-				let gridArray = this.tickArray;
+				let gridArray = tickArray;
 				if(this.space !== 0)
-					gridArray = gridArray.concat({
+					gridArray = [{ value: '', position: 0 }].concat(gridArray).concat({
 						value: '',
 						position: this.width
 					});
 
-				gridArray .forEach((tick) => {
-					let x = this.x + tick.position;
-					let y = this.y;
+				gridArray.forEach((tick) => {
+					let sx = this.x + tick.position;
+					let sy = this.y;
+					let ex = sx;
+					let ey = sy - this.bodyHeight;
+					if(this.position === 'top') {
+						sy = this.y + this.height;
+						ey = sy + this.bodyHeight;
+					}
 
 					shapeArray.push(new Line({
-						pointArray: [{ x: x, y: y }, { x: x, y: y - this.bodyHeight }],
+						pointArray: [{ x: sx, y: sy }, { x: ex, y: ey }],
 						style: lineStyle,
 						isDashed: true
 					}));
@@ -190,47 +217,75 @@ class LinearAxis {
 		}
 		/* 竖直坐标轴 */
 		else if(/left|right/.test(this.position)) {
+			let sx = this.x + this.width;
+			let sy = this.y + this.height;
+			let ex = sx;
+			let ey = this.y;
+			if(this.position === 'right') {
+				ex = sx = this.x;
+			}
+
 			shapeArray.push(new Line({
-				pointArray: [{ x: this.x + this.width, y: this.y }, { x: this.x + this.width, y: this.y + this.height }],
+				pointArray: [{ x: sx, y: sy }, { x: ex, y: ey }],
 				style: lineStyle,
 				zIndex: 1
 			}));
 
-			this.tickArray.forEach((tick, index) => {
-				let x = this.x + this.width;
-				let y = this.y + this.height - tick.position;
+			tickArray.forEach((tick, index) => {
+				let sx = this.x + this.width;
+				let sy = this.y + this.height - tick.position;
+				let ex = sx - 8;
+				let ey = sy;
+				if(this.position === 'right') {
+					sx = this.x;
+					ex = this.x + 8;
+				}
 
 				shapeArray.push(new Line({
-					pointArray: [{ x: x, y: y }, { x: x - 8, y: y }],
+					pointArray: [{ x: sx, y: sy }, { x: ex, y: ey }],
 					style: lineStyle
 				}));
 
+				let tsx = this.x + this.width - 12;
+				let tsy = this.y + this.height - tick.position;
+				if(this.position === 'right') {
+					tsx = this.x + 12;
+				}
+
+				let textAlign = this.position === 'left' ? 'right' : 'left'
+
 				shapeArray.push(new Text({
-					x: this.x + this.width - 12,
-					y: this.y + this.height - tick.position,
+					x: tsx,
+					y: tsy,
 					value: tick.value,
 					style: {
 						textBaseline: 'middle',
-						textAlign: 'right'
+						textAlign: textAlign
 					},
 					rotate: this.rotate					
 				}));
 			}, this);
 
 			if(this.isGrid) {
-				let gridArray = this.tickArray;
+				let gridArray = tickArray;
 				if(this.space !== 0)
-					gridArray = gridArray.concat({
+					gridArray = [{ value: '', position: 0 }].concat(gridArray).concat({
 						value: '',
 						position: this.height
 					});
 
 				gridArray.forEach((tick) => {
-					let x = this.x + this.width;
-					let y = this.y + this.height - tick.position;
+					let sx = this.x + this.width;
+					let sy = this.y + this.height - tick.position;
+					let ex = sx + this.bodyWidth;
+					let ey = sy;
+					if(this.position === 'right') {
+						sx = this.x;
+						ex = sx - this.bodyWidth
+					}
 
 					shapeArray.push(new Line({
-						pointArray: [{ x: x, y: y }, { x: x + this.bodyWidth, y: y }],
+						pointArray: [{ x: sx, y: sy }, { x: ex, y: ey }],
 						style: lineStyle,
 						isDashed: true
 					}));
@@ -252,10 +307,8 @@ class LinearAxis {
 	}
 
 	getShape() {
-		this.tickArray = this.computeTick();
 		this.fit();
-		this.shapeArray = this.computeShape();		
-		return this.shapeArray;
+		return this.computeShape();		
 	}
 }
 

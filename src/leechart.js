@@ -77,13 +77,15 @@ class LeeChart {
 					isGrid: true,
 					isDisplay: true,
 					space: 0, // 'auto'
+					isReverse: false,
 					formatter: function (value) { return value; }
 				},
 				y: {
-					postion: 'left',
+					position: 'left',
 					isGrid: true,
 					isDisplay: true,
 					space: 0,
+					isReverse: false,
 					formatter: function (value) { return value; }
 				},
 				theta: {
@@ -151,7 +153,9 @@ class LeeChart {
 			}
 				
 			axis.isGrid = config.isGrid || axis.isGrid;
-			axis.formatter = config.formatter || axis.formatter;			
+			axis.formatter = config.formatter || axis.formatter;
+			axis.isReverse = config.isReverse || axis.isReverse;
+			console.log(axis.isReverse)		
 		}
 
 		return this;
@@ -273,6 +277,14 @@ class LeeChart {
 		return this;
 	}
 
+	opacity() {
+
+	}
+
+	size() {
+
+	}
+
 	computeMapping() {
 		let data = [];
 
@@ -314,6 +326,12 @@ class LeeChart {
 
 	buildRectChart() {
 		let space = 24;
+		let axis = this.config.axis
+		let xAxisPosition = axis.x.position;
+		let yAxisPosition = axis.y.position;
+		let xIsReverse = axis.x.isReverse;
+		let yIsReverse = axis.y.isReverse;
+
 
 		this.xAxis = new LinearAxis({
 			data: this.dim[1].data,
@@ -322,12 +340,13 @@ class LeeChart {
 			width: this.bodyWidth,
 			height: this.padding.bottom,
 			bodyHeight: this.bodyHeight,
-			position: 'bottom',
+			position: xAxisPosition,
 			space: space,
-			render: this.backRender
+			render: this.backRender,
+			isReverse: xIsReverse
 		});	
 
-		this.box.bottom.push(this.xAxis);
+		this.box[xAxisPosition].push(this.xAxis);
 
 		this.yAxis = new LinearAxis({
 			data: this.dim[0].data.reduce((pre, cur) => pre.concat(cur), []),
@@ -335,11 +354,12 @@ class LeeChart {
 			width: this.padding.left,
 			height: this.bodyHeight,
 			bodyWidth: this.bodyWidth,
-			position: 'left',
-			render: this.backRender
+			position: yAxisPosition,
+			render: this.backRender,
+			isReverse: yIsReverse
 		});
 
-		this.box.left.push(this.yAxis);
+		this.box[yAxisPosition].push(this.yAxis);
 
 		let config = {
 			data: this.dim[0].data,

@@ -25,6 +25,13 @@
 			var height = container.offsetHeight;
 
 			chart = new LeeChart(document.querySelector('#chart'), { width, height });
+			chart.axis('x', {
+				position: 'top',
+				isReverse: true
+			}).axis('y', {
+				position: 'right',
+				isReverse: true
+			});			
 
 			fetch('/data/rainfall.json').then(res => {
 				return res.json();			
